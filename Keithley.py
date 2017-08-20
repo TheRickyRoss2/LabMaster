@@ -22,9 +22,17 @@ class Keithley_2400(object):
         self.inst.query("*ESE 1;*SRE 32;*CLS;:FUNC:CONC ON;:FUNC:ALL;:TRAC:FEED:CONT NEV;:RES:MODE MAN;")
         print self.inst.query(":SYST:ERR?")
         
-    def configure_measurement(self, function=0):
         
-        assert(function>=0 and function <3), "Invalid function specified"
+    def measure_function(self, x):
+        return{
+            0:"VOLT",
+            1:"CURR",
+            2:"RES"
+        }.get(x, "CURR")
+        
+    def configure_measurement(self, funct=0):
+        
+        assert(funct>=0 and funct <3), "Invalid function specified"
         
         
         
