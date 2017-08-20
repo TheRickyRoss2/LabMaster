@@ -54,8 +54,17 @@ class Keithley_2400(object):
             return
         self.inst.query("OUTP OFF;")
         
-    def read_single_point(self, timeout = 10000):
+    def configure_multipoint(self, arm_count=1, trigger_count=1, mode=0):
+        # :ARM:COUN 1;:TRIG:COUN 1;:SOUR:VOLT:MODE FIX;:SOUR:CURR:MODE FIX;
+        assert(mode>=0 and mode <3), "Invalid mode"
+        source_mode = {0:"FIX", 1:"SWE", 2:"LIST"}.get(mode)
+        self.inst.query(":ARM:COUN "+str(arm_count)+";:TRIG:COUN "+str(trigger_count)+";:SOUR:VOLT:MODE "+source_mode+";:SOUR:CURR:MODE "+source_mode)
         
+    def configure_trigger(self):
+        self.inst.query("ARM:SOUR IMM;:ARM:TIM 0.010000;:TRIG:SOUR IMM;:TRIG:DEL 0.000000;")
+        
+    def read_single_point(self, timeout = 10000):
+        return 1
         
     def set_voltage(self, vout):
         return 100
