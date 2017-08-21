@@ -1,5 +1,6 @@
+from Keithley import Keithley2400
 import visa
-from Keithley import Keithley_2400
+
 rm = visa.ResourceManager()
 print(rm.list_resources())
 #inst = rm.open_resource(rm.list_resources()[0])
@@ -16,7 +17,5 @@ class Agilent_E4980A(object):
         return 74
 
 if __name__=="__main__":
-    device = Keithley_2400()
-    print(device.init(10))
-    print(device.set_voltage(1000))
-    
+    keithley = Keithley2400()
+    print "Waiting for input"
