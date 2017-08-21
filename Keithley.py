@@ -3,7 +3,8 @@ import struct
 import binascii
 
 class Keithley2400(object):
-    def init(self, gpib):
+    
+    def _init(self, gpib):
         """Set up gpib controller for device"""
         
         assert(gpib >= 0), "Please enter a valid gpib address"
@@ -68,6 +69,7 @@ class Keithley2400(object):
         
         assert(mode>=0 and mode <3), "Invalid mode"
         source_mode = {0:"FIX", 1:"SWE", 2:"LIST"}.get(mode)
+        print str(arm_count)+" "+str(trigger_count)+" "+str(mode)
         self.inst.query(":ARM:COUN "+str(arm_count)+";:TRIG:COUN "+str(trigger_count)+";:SOUR:VOLT:MODE "+source_mode+";:SOUR:CURR:MODE "+source_mode)
         
     def configure_trigger(self):

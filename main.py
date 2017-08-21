@@ -1,4 +1,6 @@
 from Keithley import Keithley2400
+from Agilent import AgilentE4980a
+
 import visa
 
 rm = visa.ResourceManager()
@@ -8,14 +10,7 @@ print(rm.list_resources())
 #print(inst.query("CLEAR 7"))
 #x = raw_input(">")
 
-
-
-class Agilent_E4980A(object):
-    def init(self, gpib):
-        return 50
-    def set_voltage(self):
-        return 74
-
 if __name__=="__main__":
     keithley = Keithley2400()
-    print "Waiting for input"
+    agilent = AgilentE4980a()
+    print str(float(2.5))
