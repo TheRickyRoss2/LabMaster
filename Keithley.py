@@ -18,12 +18,11 @@ class Keithley2400(object):
                 print "found"
                 self.inst = rm.open_resource(x)
                 
-        try:
-            print(self.inst.query("*IDN?;"))
-        finally:
-            print "Unable to open visa resource"
-        self.inst.query("*RST;")
-        self.inst.query("*ESE 1;*SRE 32;*CLS;:FUNC:CONC ON;:FUNC:ALL;:TRAC:FEED:CONT NEV;:RES:MODE MAN;")
+        
+        print self.inst.query("*IDN?;")
+        self.inst.write("*RST;")
+        #self.inst.query("*RST;*IDN?;")
+        self.inst.write("*ESE 1;*SRE 32;*CLS;:FUNC:CONC ON;:FUNC:ALL;:TRAC:FEED:CONT NEV;:RES:MODE MAN;")
         print self.inst.query(":SYST:ERR?;")
         self.inst.timeout= 10000
         
@@ -46,7 +45,8 @@ class Keithley2400(object):
         """Set what we are measuring and autoranging"""
         
         assert(funct>=0 and funct <3), "Invalid function specified"
-        self.inst.query(self.get_function(funct)+"RANG:AUTO ON;")
+        print self.get_function(funct)+":RANG:AUTO ON;"
+        self.inst.write(self.get_function(funct)+":RANG:AUTO ON;")
     
     def configure_source(self, source_mode, output_level, compliance):
         """Set output level and function"""
@@ -55,15 +55,18 @@ class Keithley2400(object):
         assert(output_level>-1100 and output_level < 1100), "Voltage out of range"
         assert(compliance<0.5), "Compliance out of range"
         func = self.get_source_mode(source_mode)
-        self.inst.query("SOUR:FUNC "+func+";:SOUR:"+func+" "+str(float(output_level))+";:CURR:PROT "+str(float(compliance))+";")
+        self.inst.write("SOUR:FUNC "+func+";:SOUR:"+func+" "+str(float(output_level))+";:CURR:PROT "+str(float(compliance))+";")
         
+    def out_source(self, level):
+        self.inst.write(":SOUR:VOLT "+str(float(level)))
+        self.enable_output(True)
     def enable_output(self, output):
         """Sets output of front panel"""
         
         if output is True:
-            self.inst.query("OUTP ON;")
+            self.inst.write("OUTP ON;")
             return
-        self.inst.query("OUTP OFF;")
+        self.inst.write("OUTP OFF;")
         
     def configure_multipoint(self, arm_count=1, trigger_count=1, mode=0):
         """Configures immediate triggering and arming"""
@@ -71,23 +74,23 @@ class Keithley2400(object):
         assert(mode>=0 and mode <3), "Invalid mode"
         source_mode = {0:"FIX", 1:"SWE", 2:"LIST"}.get(mode)
         print str(arm_count)+" "+str(trigger_count)+" "+str(mode)
-        self.inst.query(":ARM:COUN "+str(arm_count)+";:TRIG:COUN "+str(trigger_count)+";:SOUR:VOLT:MODE "+source_mode+";:SOUR:CURR:MODE "+source_mode)
+        self.inst.write(":ARM:COUN "+str(arm_count)+";:TRIG:COUN "+str(trigger_count)+";:SOUR:VOLT:MODE "+source_mode+";:SOUR:CURR:MODE "+source_mode)
         
     def configure_trigger(self):
-        self.inst.query("ARM:SOUR IMM;:ARM:TIM 0.010000;:TRIG:SOUR IMM;:TRIG:DEL 0.000000;")
+        self.inst.write("ARM:SOUR IMM;:ARM:TIM 0.010000;:TRIG:SOUR IMM;:TRIG:DEL 0.000000;")
         
     def initiate_trigger(self):
-        self.inst.query(":TRIG:CLE;:INIT;")
+        self.inst.write(":TRIG:CLE;:INIT;")
     
     def wait_operation_complete(self):
 
-        self.inst.query("*OPC;")
+        self.inst.write("*OPC;")
 
 
     # TODO parse data from visa buffer 
     def fetch_measurements(self):
         read_bytes = self.inst.query(":FETC?")
-        print read_bytes
+        print "bytes: "+read_bytes
         current = 1e-3
         return current
         

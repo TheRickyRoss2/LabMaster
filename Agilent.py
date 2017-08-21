@@ -1,7 +1,8 @@
 import visa
 import struct
 import binascii
-
+import time
+from bsddb.dbtables import _data
 
 class AgilentE4980a(object):
     
@@ -19,13 +20,14 @@ class AgilentE4980a(object):
                 print "found"
                 self.inst = rm.open_resource(x)
                 
-        try:
-            print(self.inst.query("*IDN?;"))
-        finally:
-            print "Unable to open visa resource"
-        self.inst.query("*RST;")
-        self.inst.query("*ESE 60;*SRE 48;*CLS;")
-        print self.inst.query(":SYST:ERR?;")
+        #self.inst.timeout= 10000
+        print self.inst.query("*IDN?;")
+        #time.sleep(1)
+        #print self.inst.read()
+        
+        self.inst.write("*RST;")
+        self.inst.write("*ESE 60;*SRE 48;*CLS;")
+        #print self.inst.query(":SYST:ERR?;")
         self.inst.timeout= 10000
         
     def configure_measurement(self, _function=0, _impedance=3, autorange=True):
@@ -39,27 +41,29 @@ class AgilentE4980a(object):
                      8:"3E+4", 9:"1E+5"}.get(_impedance, "1E+2")
         
         if autorange is True:             
-            self.inst.query(":FUNC:IMP "+function+";:FUNC:IMP:RANG:AUTO ON")
+            self.inst.write(":FUNC:IMP "+function+";:FUNC:IMP:RANG:AUTO ON")
         else:
-            self.inst.query(":FUNC:IMP "+function+";:FUNC:IMP:RANG: "+impedance)
+            self.inst.write(":FUNC:IMP "+function+";:FUNC:IMP:RANG: "+impedance)
         
-    def configure_measurement_signal(self, frequency=1000, _signal_type=0, signal_level=1.0):
+    def configure_measurement_signal(self, frequency=10000, _signal_type=0, signal_level=5.0):
         signal_type = {0:"VOLT", 1:"CURR"}.get(_signal_type, "VOLT")
-        self.inst.query(":FREQ "+str(float(frequency))+";:"+signal_type+" "+str(float(signal_level)))
+        self.inst.write(":FREQ "+str(float(frequency))+";:"+signal_type+" "+str(float(signal_level)))
         
     def configure_aperture(self, _meas_time=1, avg_factor=1):
         meas_time = {0:"SHOR", 1:"MED", 2:"LONG"}.get(_meas_time, "MED")
-        self.inst.query(":APER "+meas_time+","+str(float(avg_factor))+";")
+        self.inst.write(":APER "+meas_time+","+str(float(avg_factor))+";")
     
     def initiate(self):
-        self.inst.query(":INIT;")
+        self.inst.write(":INIT;")
     
     def fetch_data(self):
-        data_out = self.inst.query(":FETC?").split(";")[1]
+        _data_out = self.inst.query(":FETC?")
+        #print _data_out
+        data_out = _data_out
         parameter1 = data_out.split(",")[0]
         parameter2 = data_out.split(",")[1]
         results = (parameter1, parameter2)
-        print results
+        #print results
         return results
     
     def read_data(self):
