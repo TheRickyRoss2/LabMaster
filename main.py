@@ -1,4 +1,4 @@
-from Keithley import Keithley_2400
+from Keithley import Keithley2400
 import visa
 rm = visa.ResourceManager()
 print(rm.list_resources())
@@ -16,5 +16,5 @@ class Agilent_E4980A(object):
         return 74
 
 if __name__=="__main__":
-    keithley = Keithley_2400()
+    keithley = Keithley2400()
     print "Waiting for input"

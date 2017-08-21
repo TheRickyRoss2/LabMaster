@@ -2,9 +2,10 @@ import visa
 import struct
 import binascii
 
-class Keithley_2400(object):
-    
+class Keithley2400(object):
     def init(self, gpib):
+        """Set up gpib controller for device"""
+        
         assert(gpib >= 0), "Please enter a valid gpib address"
         self.gpib_addr = gpib
         
@@ -40,10 +41,14 @@ class Keithley_2400(object):
         }.get(x, "VOLT")
         
     def configure_measurement(self, funct=0):
+        """Set what we are measuring and autoranging"""
+        
         assert(funct>=0 and funct <3), "Invalid function specified"
         self.inst.query(self.get_function(funct)+"RANG:AUTO ON;")
     
     def configure_source(self, source_mode, output_level, compliance):
+        """Set output level and function"""
+        
         assert(source_mode>=0 and source_mode<2), "Invalid Source function"
         assert(output_level>-1100 and output_level < 1100), "Voltage out of range"
         assert(compliance<0.5), "Compliance out of range"
@@ -51,12 +56,16 @@ class Keithley_2400(object):
         self.inst.query("SOUR:FUNC "+func+";:SOUR:"+func+" "+str(float(output_level))+";:CURR:PROT "+str(float(compliance))+";")
         
     def enable_output(self, output):
+        """Sets output of front panel"""
+        
         if output is True:
             self.inst.query("OUTP ON;")
             return
         self.inst.query("OUTP OFF;")
         
     def configure_multipoint(self, arm_count=1, trigger_count=1, mode=0):
+        """Configures immediate triggering and arming"""
+        
         assert(mode>=0 and mode <3), "Invalid mode"
         source_mode = {0:"FIX", 1:"SWE", 2:"LIST"}.get(mode)
         self.inst.query(":ARM:COUN "+str(arm_count)+";:TRIG:COUN "+str(trigger_count)+";:SOUR:VOLT:MODE "+source_mode+";:SOUR:CURR:MODE "+source_mode)
@@ -68,8 +77,10 @@ class Keithley_2400(object):
         self.inst.query(":TRIG:CLE;:INIT;")
     
     def wait_operation_complete(self):
+
         self.inst.query("*OPC;")
-        
+
+
     # TODO parse data from visa buffer 
     def fetch_measurements(self):
         read_bytes = self.inst.query(":FETC?")
