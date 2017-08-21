@@ -1,5 +1,5 @@
 import visa
-from keith import Keithley_2400
+from Keithley import Keithley_2400
 rm = visa.ResourceManager()
 print(rm.list_resources())
 #inst = rm.open_resource(rm.list_resources()[0])
