@@ -17,4 +17,4 @@ class Agilent_E4980A(object):
 
 if __name__=="__main__":
     keithley = Keithley2400()
-    print "Waiting for input"
+    print str(float(2.5))
