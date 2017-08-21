@@ -2,6 +2,9 @@ from Keithley import Keithley2400
 from Agilent import AgilentE4980a
 import time
 import visa
+import numpy as np
+import matplotlib.pyplot as plt
+from Tkconstants import CURRENT
 
 rm = visa.ResourceManager()
 print(rm.list_resources())
@@ -9,7 +12,10 @@ print(rm.list_resources())
 #print(inst.query("REMOTE 716"))
 #print(inst.query("CLEAR 7"))
 #x = raw_input(">")
-def GetIV(start_volt, end_volt, step_volt, delay_time, hold_time, compliance):
+
+def GetIV(voltmeter, graph):
+    (start_volt, end_volt, step_volt, delay_time, hold_time, compliance) = voltmeter
+    
     currents = []
     keithley = Keithley2400()
     keithley.init()
@@ -26,7 +32,8 @@ def GetIV(start_volt, end_volt, step_volt, delay_time, hold_time, compliance):
         time.sleep(delay_time)
         
         curr = keithley.read_single_point(hold_time)
-        if(curr > compliance):
+        
+        if(curr[1] > compliance):
             badCount = badCount + 1
             
         if(badCount>=5):
@@ -34,6 +41,11 @@ def GetIV(start_volt, end_volt, step_volt, delay_time, hold_time, compliance):
             break
         
         currents.append(curr)
+        
+        Y = currents
+        graph.set_ydata(Y)
+        graph.draw()
+        
         last_volt = volt
         #graph point here
         
@@ -43,7 +55,7 @@ def GetIV(start_volt, end_volt, step_volt, delay_time, hold_time, compliance):
     
     keithley.enable_output(False)
     print currents
-    return 0
+    return currents
 
 def GetCV(voltmeter, lcrmeter):
     capacitance = []
@@ -82,6 +94,7 @@ def GetCV(voltmeter, lcrmeter):
             print "Compliance reached"
             break
         last_volt = volt
+        
         #graph point here
     for volt in xrange(last_volt, start_volt, step_volt*-2):
         keithley.set_output(volt)
@@ -93,7 +106,7 @@ def GetCV(voltmeter, lcrmeter):
         print "Frequency: " +str(frequencies[i]) 
         print capacitance[i::len(frequencies)]
         
-    return 1
+    return capacitance
 
 
 if __name__=="__main__":
@@ -125,4 +138,11 @@ if __name__=="__main__":
     GetCV(voltmeter, lcrmeter)
     print str(float(2.5))
     """
+    voltmeter = (0, 20, 1, 0.5, 0.1, 0.1)
+    X = np.linspace(0, 20, 21)
+    plt.ion()
+    Y = X*0
+    graph = plt.plot(X,Y)[0]
+    iv = GetIV(voltmeter, graph)
+    #plt.plot(iv)
     

@@ -1,5 +1,4 @@
 import visa
-from test.test_dummy_thread import DELAY
 
 class Keithley2400(object):
     
