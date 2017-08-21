@@ -10,6 +10,15 @@ print(rm.list_resources())
 #print(inst.query("CLEAR 7"))
 #x = raw_input(">")
 
+def GetIV(start_volt, end_volt, step_volt, hold_time, delay_time):
+    
+    return 0
+
+def GetCV(start_volt, end_volt, frequencies, hold_time, delay_time, integration_time):
+    
+    return 1
+
+
 if __name__=="__main__":
     """
     keithley = Keithley2400()
@@ -22,14 +31,14 @@ if __name__=="__main__":
         keithley.out_source(i)
         print keithley.read_single_point()
         time.sleep(0.5)
-    """
+    
     agilent = AgilentE4980a()
-    agilent._init(19)
+    agilent.init(19)
     
     agilent.configure_measurement(0, 4, True)
     for i in (1000, 2000, 10000, 20000):
         agilent.configure_measurement_signal(i, 0, 5)
         print agilent.read_data()
         time.sleep(0.5)
-    
+    """
     print str(float(2.5))

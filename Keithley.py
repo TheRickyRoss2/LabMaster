@@ -4,7 +4,7 @@ import binascii
 
 class Keithley2400(object):
     
-    def _init(self, gpib):
+    def init(self, gpib):
         """Set up gpib controller for device"""
         
         assert(gpib >= 0), "Please enter a valid gpib address"
@@ -26,35 +26,26 @@ class Keithley2400(object):
         print self.inst.query(":SYST:ERR?;")
         self.inst.timeout= 10000
         
-        
-    def get_function(self, x):
-        return{
-            0:":VOLT",
-            1:":CURR",
-            2:":RES"
-        }.get(x, "CURR")
-        
-        
+    
     def get_source_mode(self, x):
         return{
             0:"VOLT",
             1:"CURR"
         }.get(x, "VOLT")
         
-    def configure_measurement(self, funct=0):
-        """Set what we are measuring and autoranging"""
-        
-        assert(funct>=0 and funct <3), "Invalid function specified"
-        print self.get_function(funct)+":RANG:AUTO ON;"
-        self.inst.write(self.get_function(funct)+":RANG:AUTO ON;")
+    def configure_measurement(self, _funct=0):
+        """Set what we are measuring and autoranging"""      
+          
+        funct = {0:":VOLT", 1:":CURR", 2:":RES"}.get(_funct, ":CURR")
+        self.inst.write(funct+":RANG:AUTO ON;")
     
-    def configure_source(self, source_mode, output_level, compliance):
+    def configure_source(self, _func, output_level, compliance):
         """Set output level and function"""
         
         assert(source_mode>=0 and source_mode<2), "Invalid Source function"
         assert(output_level>-1100 and output_level < 1100), "Voltage out of range"
         assert(compliance<0.5), "Compliance out of range"
-        func = self.get_source_mode(source_mode)
+        func = {0:"VOLT", 1:"CURR"}.get(_func, "VOLT")
         self.inst.write("SOUR:FUNC "+func+";:SOUR:"+func+" "+str(float(output_level))+";:CURR:PROT "+str(float(compliance))+";")
         
     def out_source(self, level):
@@ -83,7 +74,6 @@ class Keithley2400(object):
         self.inst.write(":TRIG:CLE;:INIT;")
     
     def wait_operation_complete(self):
-
         self.inst.write("*OPC;")
 
 
@@ -91,8 +81,7 @@ class Keithley2400(object):
     def fetch_measurements(self):
         read_bytes = self.inst.query(":FETC?")
         print "bytes: "+read_bytes
-        current = 1e-3
-        return current
+        return (float(read_bytes.split(",")[0]), float(read_bytes.split(",")[1]))
         
     def read_single_point(self):
         self.configure_multipoint()

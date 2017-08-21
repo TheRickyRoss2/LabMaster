@@ -6,7 +6,7 @@ from bsddb.dbtables import _data
 
 class AgilentE4980a(object):
     
-    def _init(self, gpib):
+    def init(self, gpib):
         """Set up gpib controller for device"""
         
         assert(gpib >= 0), "Please enter a valid gpib address"
@@ -20,14 +20,10 @@ class AgilentE4980a(object):
                 print "found"
                 self.inst = rm.open_resource(x)
                 
-        #self.inst.timeout= 10000
         print self.inst.query("*IDN?;")
-        #time.sleep(1)
-        #print self.inst.read()
         
         self.inst.write("*RST;")
         self.inst.write("*ESE 60;*SRE 48;*CLS;")
-        #print self.inst.query(":SYST:ERR?;")
         self.inst.timeout= 10000
         
     def configure_measurement(self, _function=0, _impedance=3, autorange=True):
