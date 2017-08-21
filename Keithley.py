@@ -40,7 +40,6 @@ class Keithley_2400(object):
         }.get(x, "VOLT")
         
     def configure_measurement(self, funct=0):
-        
         assert(funct>=0 and funct <3), "Invalid function specified"
         self.inst.query(self.get_function(funct)+"RANG:AUTO ON;")
     
@@ -58,7 +57,6 @@ class Keithley_2400(object):
         self.inst.query("OUTP OFF;")
         
     def configure_multipoint(self, arm_count=1, trigger_count=1, mode=0):
-        # :ARM:COUN 1;:TRIG:COUN 1;:SOUR:VOLT:MODE FIX;:SOUR:CURR:MODE FIX;
         assert(mode>=0 and mode <3), "Invalid mode"
         source_mode = {0:"FIX", 1:"SWE", 2:"LIST"}.get(mode)
         self.inst.query(":ARM:COUN "+str(arm_count)+";:TRIG:COUN "+str(trigger_count)+";:SOUR:VOLT:MODE "+source_mode+";:SOUR:CURR:MODE "+source_mode)
