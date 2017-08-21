@@ -58,7 +58,7 @@ class AgilentE4980a(object):
         data_out = _data_out
         parameter1 = data_out.split(",")[0]
         parameter2 = data_out.split(",")[1]
-        results = (parameter1, parameter2)
+        results = (float(parameter1), float(parameter2))
         #print results
         return results
     
