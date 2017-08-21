@@ -1,8 +1,6 @@
 import visa
 import struct
 import binascii
-from Tix import AUTO
-from _ast import Param
 
 class AgilentE4980a(object):
     
@@ -12,7 +10,7 @@ class AgilentE4980a(object):
         assert(gpib >= 0), "Please enter a valid gpib address"
         self.gpib_addr = gpib
         
-        print "Initializing keithley 2400"
+        print "Initializing agilent lcr_meter"
         rm = visa.ResourceManager()
         self.inst = rm.open_resource(rm.list_resources()[0])
         for x in rm.list_resources():
@@ -60,6 +58,7 @@ class AgilentE4980a(object):
         parameter1 = data_out.split(",")[0]
         parameter2 = data_out.split(",")[1]
         results = (parameter1, parameter2)
+        print results
         return results
     
     def read_data(self):
