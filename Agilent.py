@@ -2,6 +2,7 @@ import visa
 import struct
 import binascii
 
+
 class AgilentE4980a(object):
     
     def _init(self, gpib):

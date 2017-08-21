@@ -35,6 +35,7 @@ class Keithley2400(object):
             2:":RES"
         }.get(x, "CURR")
         
+        
     def get_source_mode(self, x):
         return{
             0:"VOLT",
