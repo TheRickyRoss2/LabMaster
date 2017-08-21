@@ -1,4 +1,6 @@
 import visa
+import struct
+import binascii
 
 class Keithley_2400(object):
     
@@ -21,6 +23,7 @@ class Keithley_2400(object):
         self.inst.query("*RST;")
         self.inst.query("*ESE 1;*SRE 32;*CLS;:FUNC:CONC ON;:FUNC:ALL;:TRAC:FEED:CONT NEV;:RES:MODE MAN;")
         print self.inst.query(":SYST:ERR?;")
+        self.inst.timeout= 10000
         
         
     def get_function(self, x):
@@ -63,11 +66,25 @@ class Keithley_2400(object):
     def configure_trigger(self):
         self.inst.query("ARM:SOUR IMM;:ARM:TIM 0.010000;:TRIG:SOUR IMM;:TRIG:DEL 0.000000;")
         
-    def read_single_point(self, timeout = 10000):
-        return 1
+    def initiate_trigger(self):
+        self.inst.query(":TRIG:CLE;:INIT;")
+    
+    def wait_operation_complete(self):
+        self.inst.query("*OPC;")
         
-    def set_voltage(self, vout):
-        return 100
-    def configure_sweep(self, start_volt, end_volt, step_volt, delay_time, hold_time):
-        return 90
+    # TODO parse data from visa buffer 
+    def fetch_measurements(self):
+        read_bytes = self.inst.query(":FETC?")
+        print read_bytes
+        current = 1e-3
+        return current
+        
+    def read_single_point(self):
+        self.configure_multipoint()
+        self.configure_trigger()
+        self.initiate_trigger()
+        self.wait_operation_complete()
+        return self.fetch_measurements()
+        
+
     

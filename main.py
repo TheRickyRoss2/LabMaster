@@ -16,7 +16,5 @@ class Agilent_E4980A(object):
         return 74
 
 if __name__=="__main__":
-    #device = Keithley_2400()
-    #print device.init(10)
-    #print device.set_voltage(1000)
-    print {0:'a', 1:'b'}.get(1)
+    keithley = Keithley_2400()
+    print "Waiting for input"
