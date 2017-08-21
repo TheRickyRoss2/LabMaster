@@ -7,14 +7,6 @@ print(rm.list_resources())
 #print(inst.query("CLEAR 7"))
 #x = raw_input(">")
 
-
-
-class Agilent_E4980A(object):
-    def init(self, gpib):
-        return 50
-    def set_voltage(self):
-        return 74
-
 if __name__=="__main__":
     keithley = Keithley2400()
     print str(float(2.5))
