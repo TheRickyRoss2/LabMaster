@@ -1,4 +1,5 @@
 import visa
+from test.test_dummy_thread import DELAY
 
 class Keithley2400(object):
     
@@ -24,22 +25,22 @@ class Keithley2400(object):
         print self.inst.query(":SYST:ERR?;")
         self.inst.timeout= 10000
         
-    def configure_measurement(self, _funct=0):
+    def configure_measurement(self, _funct=1):
         """Set what we are measuring and autoranging"""      
           
         funct = {0:":VOLT", 1:":CURR", 2:":RES"}.get(_funct, ":CURR")
         self.inst.write(funct+":RANG:AUTO ON;")
     
-    def configure_source(self, _func=0, output_level=5, compliance=0.1):
+    def configure_source(self, _func=0, output_level=0, compliance=0.1):
         """Set output level and function"""
         
-        assert(source_mode>=0 and source_mode<2), "Invalid Source function"
+        assert(_func>=0 and _func<2), "Invalid Source function"
         assert(output_level>-1100 and output_level < 1100), "Voltage out of range"
         assert(compliance<0.5), "Compliance out of range"
         func = {0:"VOLT", 1:"CURR"}.get(_func, "VOLT")
         self.inst.write("SOUR:FUNC "+func+";:SOUR:"+func+" "+str(float(output_level))+";:CURR:PROT "+str(float(compliance))+";")
         
-    def out_source(self, level=5):
+    def set_output(self, level=0):
         self.inst.write(":SOUR:VOLT "+str(float(level)))
         self.enable_output(True)
         
@@ -56,11 +57,10 @@ class Keithley2400(object):
         
         assert(mode>=0 and mode <3), "Invalid mode"
         source_mode = {0:"FIX", 1:"SWE", 2:"LIST"}.get(mode)
-        print str(arm_count)+" "+str(trigger_count)+" "+str(mode)
         self.inst.write(":ARM:COUN "+str(arm_count)+";:TRIG:COUN "+str(trigger_count)+";:SOUR:VOLT:MODE "+source_mode+";:SOUR:CURR:MODE "+source_mode)
         
-    def configure_trigger(self):
-        self.inst.write("ARM:SOUR IMM;:ARM:TIM 0.010000;:TRIG:SOUR IMM;:TRIG:DEL 0.000000;")
+    def configure_trigger(self, delay=0.0):
+        self.inst.write("ARM:SOUR IMM;:ARM:TIM 0.010000;:TRIG:SOUR IMM;:TRIG:DEL "+str(delay)+";")
         
     def initiate_trigger(self):
         self.inst.write(":TRIG:CLE;:INIT;")
@@ -72,12 +72,11 @@ class Keithley2400(object):
     # TODO parse data from visa buffer 
     def fetch_measurements(self):
         read_bytes = self.inst.query(":FETC?")
-        print "bytes: "+read_bytes
         return (float(read_bytes.split(",")[0]), float(read_bytes.split(",")[1]))
         
-    def read_single_point(self):
+    def read_single_point(self, delay):
         self.configure_multipoint()
-        self.configure_trigger()
+        self.configure_trigger(delay)
         self.initiate_trigger()
         self.wait_operation_complete()
         return self.fetch_measurements()

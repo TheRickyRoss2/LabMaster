@@ -9,13 +9,90 @@ print(rm.list_resources())
 #print(inst.query("REMOTE 716"))
 #print(inst.query("CLEAR 7"))
 #x = raw_input(">")
-
-def GetIV(start_volt, end_volt, step_volt, hold_time, delay_time):
+def GetIV(start_volt, end_volt, step_volt, delay_time, hold_time, compliance):
+    currents = []
+    keithley = Keithley2400()
+    keithley.init()
+    keithley.configure_measurement()
+    keithley.configure_source()
+    last_volt = 0
+    badCount = 0
+    if start_volt>end_volt:
+        step_volt = -1*step_volt
     
+    for volt in xrange(start_volt, end_volt+step_volt, step_volt):
+        
+        keithley.set_output(volt)
+        time.sleep(delay_time)
+        
+        curr = keithley.read_single_point(hold_time)
+        if(curr > compliance):
+            badCount = badCount + 1
+            
+        if(badCount>=5):
+            print "Compliance reached"
+            break
+        
+        currents.append(curr)
+        last_volt = volt
+        #graph point here
+        
+    for volt in xrange(last_volt, start_volt, step_volt*-2):
+        keithley.set_output(volt)
+        time.sleep(delay_time/2.0)
+    
+    keithley.enable_output(False)
+    print currents
     return 0
 
-def GetCV(start_volt, end_volt, frequencies, hold_time, delay_time, integration_time):
+def GetCV(voltmeter, lcrmeter):
+    capacitance = []
+    keithley = Keithley2400()
+    keithley.init()
+    keithley.configure_measurement()
+    keithley.configure_source()
+    last_volt = 0
+    (frequencies, meas_time, avg_factor, signal_type, level, function, impedance) = lcrmeter
     
+    (start_volt, end_volt, step_volt, hold_time, delay_time, compliance) = voltmeter
+    
+    agilent = AgilentE4980a()
+    agilent.init()
+    agilent.configure_measurement(function, impedance)
+    agilent.configure_aperture(meas_time, avg_factor)
+    badCount = 0
+    if start_volt>end_volt:
+        step_volt = -1*step_volt
+    
+    for volt in xrange(start_volt, end_volt, step_volt):
+        
+        keithley.set_output(volt)
+        time.sleep(delay_time)
+        for f in frequencies:
+            agilent.configure_measurement_signal(f, signal_type, level)
+            data = agilent.read_data()
+            capacitance.append(data)
+        
+        
+        curr = keithley.read_single_point(hold_time)
+        if(curr[1] > compliance):
+            badCount = badCount + 1
+            
+        if(badCount>=5):
+            print "Compliance reached"
+            break
+        last_volt = volt
+        #graph point here
+    for volt in xrange(last_volt, start_volt, step_volt*-2):
+        keithley.set_output(volt)
+        time.sleep(delay_time/2.0)
+    
+    keithley.enable_output(False)
+
+    for i in xrange(0,len(frequencies), 1):
+        print "Frequency: " +str(frequencies[i]) 
+        print capacitance[i::len(frequencies)]
+        
     return 1
 
 
@@ -40,5 +117,12 @@ if __name__=="__main__":
         agilent.configure_measurement_signal(i, 0, 5)
         print agilent.read_data()
         time.sleep(0.5)
-    """
+    
+    GetIV(0, 20, 1, 0.5, 0.1, 0.1)
+    voltmeter = (0, 20, 1, 0.5, 0.1, 0.1)
+    frequencies = (1000, 2000, 10000, 20000, 50000, 100000)
+    lcrmeter = (frequencies, 1, 1, 0, 1, 0, 1)
+    GetCV(voltmeter, lcrmeter)
     print str(float(2.5))
+    """
+    
