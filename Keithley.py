@@ -1,10 +1,8 @@
 import visa
-import struct
-import binascii
 
 class Keithley2400(object):
     
-    def init(self, gpib):
+    def init(self, gpib=22):
         """Set up gpib controller for device"""
         
         assert(gpib >= 0), "Please enter a valid gpib address"
@@ -26,20 +24,13 @@ class Keithley2400(object):
         print self.inst.query(":SYST:ERR?;")
         self.inst.timeout= 10000
         
-    
-    def get_source_mode(self, x):
-        return{
-            0:"VOLT",
-            1:"CURR"
-        }.get(x, "VOLT")
-        
     def configure_measurement(self, _funct=0):
         """Set what we are measuring and autoranging"""      
           
         funct = {0:":VOLT", 1:":CURR", 2:":RES"}.get(_funct, ":CURR")
         self.inst.write(funct+":RANG:AUTO ON;")
     
-    def configure_source(self, _func, output_level, compliance):
+    def configure_source(self, _func=0, output_level=5, compliance=0.1):
         """Set output level and function"""
         
         assert(source_mode>=0 and source_mode<2), "Invalid Source function"
@@ -48,10 +39,11 @@ class Keithley2400(object):
         func = {0:"VOLT", 1:"CURR"}.get(_func, "VOLT")
         self.inst.write("SOUR:FUNC "+func+";:SOUR:"+func+" "+str(float(output_level))+";:CURR:PROT "+str(float(compliance))+";")
         
-    def out_source(self, level):
+    def out_source(self, level=5):
         self.inst.write(":SOUR:VOLT "+str(float(level)))
         self.enable_output(True)
-    def enable_output(self, output):
+        
+    def enable_output(self, output=False):
         """Sets output of front panel"""
         
         if output is True:

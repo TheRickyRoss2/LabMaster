@@ -1,12 +1,9 @@
 import visa
-import struct
-import binascii
 import time
-from bsddb.dbtables import _data
 
 class AgilentE4980a(object):
     
-    def init(self, gpib):
+    def init(self, gpib=19):
         """Set up gpib controller for device"""
         
         assert(gpib >= 0), "Please enter a valid gpib address"
