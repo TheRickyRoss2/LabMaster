@@ -96,7 +96,6 @@ class Keithley2657a(object):
                 print "found"
                 self.inst = rm.open_resource(x)
                 
-        
         #print self.inst.query("*IDN?;")
         self.inst.write("reset()")
         self.inst.write("errorqueue.clear() localnode.prompts = 0 localnode.showerrors = 0")
