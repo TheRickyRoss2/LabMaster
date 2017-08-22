@@ -1,5 +1,6 @@
 from Keithley import Keithley2400
 from Agilent import AgilentE4980a
+from Keithley import Keithley2657a
 import time
 import visa
 import numpy as np
@@ -137,12 +138,36 @@ if __name__=="__main__":
     lcrmeter = (frequencies, 1, 1, 0, 1, 0, 1)
     GetCV(voltmeter, lcrmeter)
     print str(float(2.5))
-    """
+    
     voltmeter = (0, 20, 1, 0.5, 0.1, 0.1)
     X = np.linspace(0, 20, 21)
     plt.ion()
     Y = X*0
     graph = plt.plot(X,Y)[0]
     iv = GetIV(voltmeter, graph)
-    #plt.plot(iv)
+    plt.plot(iv)
+    """
+    keithley = Keithley2657a()
+    keithley.init()
+    
+    keithley.configure_measurement()
+    keithley.output_level()
+    keithley.output_limit()
+    keithley.enable_output(True)
+    
+    current = []
+    
+    for x in xrange(0, 20, 1):
+        time.sleep(0.5)
+        keithley.output_level(x)
+        current.append(keithley.get_current())
+    for x in xrange(20, 0, -2):
+        time.sleep(0.25)
+        keithley.output_level(x)
+        
+    keithley.output_level(0)
+    keithley.enable_output()
+    
+    print current
+    
     

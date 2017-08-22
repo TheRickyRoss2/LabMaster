@@ -80,5 +80,50 @@ class Keithley2400(object):
         self.wait_operation_complete()
         return self.fetch_measurements()
         
-
+class Keithley2657a(object):
+    
+    def init(self, gpib=24):
+        """Set up gpib controller for device"""
+        
+        assert(gpib >= 0), "Please enter a valid gpib address"
+        self.gpib_addr = gpib
+        
+        print "Initializing keithley 2657A"
+        rm = visa.ResourceManager()
+        self.inst = rm.open_resource(rm.list_resources()[0])
+        for x in rm.list_resources():
+            if str(self.gpib_addr) in x:
+                print "found"
+                self.inst = rm.open_resource(x)
+                
+        
+        print self.inst.query("*IDN?")
+        self.inst.write("reset()")
+        self.inst.write("errorqueue.clear() localnode.prompts = 0 localnode.showerrors = 0")
+        print self.inst.query("print(errorqueue.next())")
+        self.inst.timeout= 10000
+        
+    def configure_measurement(self, _source=1):
+        source = {0:"OUTPUT_DCAMPS", 1:"OUTPUT_DCVOLTS"}.get(_source, "OUTPUT_DCVOLTS")        
+        self.inst.write("smua.source.func = smua."+source)
+        
+    def output_level(self, level=0):
+        self.inst.write("smua.source.levelv = "+str(level))
+        
+    def output_limit(self, limit=0.1):
+        self.inst.write("smua.source.limiti = "+str(limit))
+        
+    def enable_output(self, out=False):
+        if out is True:
+            self.inst.write("smua.source.output = 1")
+            return
+        self.inst.write("smua.source.output = 0")
+        
+    def get_current(self):
+        return float(self.inst.query("printnumber(smua.measure.i())").split("\n")[0])
+    
+    def reset_smu(self):
+        self.inst.write("smua.reset()")
+        
+    
     
