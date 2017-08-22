@@ -97,10 +97,10 @@ class Keithley2657a(object):
                 self.inst = rm.open_resource(x)
                 
         
-        print self.inst.query("*IDN?")
+        #print self.inst.query("*IDN?;")
         self.inst.write("reset()")
         self.inst.write("errorqueue.clear() localnode.prompts = 0 localnode.showerrors = 0")
-        print self.inst.query("print(errorqueue.next())")
+        #print self.inst.query("print(errorqueue.next())")
         self.inst.timeout= 10000
         
     def configure_measurement(self, _source=1):

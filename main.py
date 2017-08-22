@@ -1,6 +1,7 @@
 from Keithley import Keithley2400
 from Agilent import AgilentE4980a
 from Keithley import Keithley2657a
+from Agilent import Agilent4156
 import time
 import visa
 import numpy as np
@@ -169,5 +170,13 @@ if __name__=="__main__":
     keithley.enable_output()
     
     print current
-    
-    
+    """
+    agilent = Agilent4156()
+    agilent.init()
+    agilent.configure_measurement()
+    agilent.configure_sampling_measurement()
+    agilent.configure_sampling_stop()
+    agilent.measurement_actions()
+    agilent.wait_for_acquisition()
+    print agilent.read_trace_data()
+    """

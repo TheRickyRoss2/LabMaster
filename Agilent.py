@@ -60,7 +60,7 @@ class Agilent4156(object):
             
         self.inst.write(":PAGE:MEAS:SAMP:SCON:ECO "+str(no_events)+";")
         self.inst.write(":PAGE:MEAS:SAMP:SCON:EDEL "+str(delay)+";")
-        self.inst.write(":PAGE:MEAS:SAMP:SCON "+event_type+";")
+        #self.inst.write(":PAGE:MEAS:SAMP:SCON "+event_type+";")
         self.inst.write(":PAGE:MEAS:SAMP:SCON:NAME \'"+var+"\';")
         self.inst.write(":PAGE:MEAS:SAMP:SCON:THR "+str(thresh)+";")
         
@@ -73,7 +73,7 @@ class Agilent4156(object):
         return self.inst.query("*OPC?")
         
     def read_trace_data(self, var="I1"):
-        return self.inst.query(":FORM:BORD NORM;DATA REAL, 64;:DATA? \'"+var+"\';")
+        return map(lambda x: float(x), self.inst.query(":FORM:BORD NORM;DATA ASC;:DATA? \'"+var+"\';").split(","))
         
 class AgilentE4980a(object):
     
