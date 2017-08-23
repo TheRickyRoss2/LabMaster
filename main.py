@@ -7,6 +7,7 @@ import time
 import visa
 import numpy as np
 import matplotlib.pyplot as plt
+import Tkinter as tk
 
 rm = visa.ResourceManager()
 print(rm.list_resources())
