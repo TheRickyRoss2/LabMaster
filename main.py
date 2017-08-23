@@ -2,11 +2,11 @@ from Keithley import Keithley2400
 from Agilent import AgilentE4980a
 from Keithley import Keithley2657a
 from Agilent import Agilent4156
+
 import time
 import visa
 import numpy as np
 import matplotlib.pyplot as plt
-from Tkconstants import CURRENT
 
 rm = visa.ResourceManager()
 print(rm.list_resources())
@@ -110,6 +110,42 @@ def GetCV(voltmeter, lcrmeter):
         
     return capacitance
 
+def spa_iv(source_param, meas_param):
+    
+    current_smu1 = []
+    current_smu2 = []
+    current_source = []
+    voltage_source = Keithley2400()
+    voltage_source.init()
+    voltage_source.configure_measurement()
+    voltage_source.configure_source(0, 0, 0.1)
+    voltage_source.enable_output(True)
+    
+    daq = Agilent4156()
+    daq.init()
+    daq.configure_integration_time()
+    for i in xrange(0, 4, 1):
+        daq.configure_channel(i)
+        
+    for x in xrange(0, 10, 1):
+        
+        voltage_source.set_output(x)
+        time.sleep(0.5)
+        daq.configure_measurement()
+        daq.configure_sampling_measurement()
+        daq.configure_sampling_stop()
+        daq.measurement_actions()
+        daq.wait_for_acquisition()
+        current_smu1.append(daq.read_trace_data("I1"))
+        current_smu1.append(daq.read_trace_data("I2"))
+        current_source.append(voltage_source.get_current())
+        
+    for x in xrange(0, 10, -2*step_volt):
+        voltage_source.set_output(x)
+        time.sleep(0.25)
+        
+    voltage_source.set_output(0)
+    voltage_source.enable_output(False)
 
 if __name__=="__main__":
     """
@@ -147,7 +183,7 @@ if __name__=="__main__":
     graph = plt.plot(X,Y)[0]
     iv = GetIV(voltmeter, graph)
     plt.plot(iv)
-    """
+    
     keithley = Keithley2657a()
     keithley.init()
     
@@ -170,7 +206,7 @@ if __name__=="__main__":
     keithley.enable_output()
     
     print current
-    """
+    
     agilent = Agilent4156()
     agilent.init()
     agilent.configure_measurement()
@@ -180,3 +216,5 @@ if __name__=="__main__":
     agilent.wait_for_acquisition()
     print agilent.read_trace_data()
     """
+    
+    spa_iv(0, 0)

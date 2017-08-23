@@ -73,7 +73,7 @@ class Keithley2400(object):
         read_bytes = self.inst.query(":FETC?")
         return (float(read_bytes.split(",")[0]), float(read_bytes.split(",")[1]))
         
-    def read_single_point(self, delay):
+    def get_current(self, delay=0):
         self.configure_multipoint()
         self.configure_trigger(delay)
         self.initiate_trigger()
@@ -106,10 +106,10 @@ class Keithley2657a(object):
         source = {0:"OUTPUT_DCAMPS", 1:"OUTPUT_DCVOLTS"}.get(_source, "OUTPUT_DCVOLTS")        
         self.inst.write("smua.source.func = smua."+source)
         
-    def output_level(self, level=0):
+    def set_output(self, level=0):
         self.inst.write("smua.source.levelv = "+str(level))
         
-    def output_limit(self, limit=0.1):
+    def configure_source(self, limit=0.1):
         self.inst.write("smua.source.limiti = "+str(limit))
         
     def enable_output(self, out=False):

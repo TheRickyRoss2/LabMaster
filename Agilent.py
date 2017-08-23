@@ -1,5 +1,7 @@
 import visa
 import time
+from itertools import chain
+from numpy import short
 
 class Agilent4156(object):
     
@@ -60,7 +62,7 @@ class Agilent4156(object):
             
         self.inst.write(":PAGE:MEAS:SAMP:SCON:ECO "+str(no_events)+";")
         self.inst.write(":PAGE:MEAS:SAMP:SCON:EDEL "+str(delay)+";")
-        #self.inst.write(":PAGE:MEAS:SAMP:SCON "+event_type+";")
+        self.inst.write(":PAGE:MEAS:SAMP:SCON:EVEN "+event_type+";")
         self.inst.write(":PAGE:MEAS:SAMP:SCON:NAME \'"+var+"\';")
         self.inst.write(":PAGE:MEAS:SAMP:SCON:THR "+str(thresh)+";")
         
@@ -74,6 +76,31 @@ class Agilent4156(object):
         
     def read_trace_data(self, var="I1"):
         return map(lambda x: float(x), self.inst.query(":FORM:BORD NORM;DATA ASC;:DATA? \'"+var+"\';").split(","))
+        
+    def configure_channel(self, _chan=0, _func=3, _mode = 4, sres=0, standby=False):
+        chan = {0:"SMU1", 1:"SMU2", 2:"SMU3", 3:"SMU4"}.get(_chan, "SMU1")
+        func = {0:"VAR1", 1:"VAR2", 2:"VARD", 3:"CONS"}.get(_func, "CONS")
+        mode = {0:"V", 1:"I", 2:"VPUL", 3:"IPUL", 4:"COMM"}.get(_mode, "COMM")
+        self.inst.write(":PAGE:CHAN:"+ chan +":FUNC: "+ func+";")
+        iname = {0:"I1", 1:"I2", 2:"I3", 3:"I4"}.get(_chan)
+        vname = {0:"V1", 1:"V2", 2:"V3", 3:"V4"}.get(_chan)
+        self.inst.write(":PAGE:CHAN:"+ chan + ":INAM\'" + iname + "\';")
+        self.inst.write(":PAGE:CHAN:"+ chan + ":MODE "+mode+";")
+        self.inst.write(":PAGE:CHAN:"+ chan + ":SRES "+str(sres)+";")
+        if standby is True:
+            self.inst.write(":PAGE:CHAN:"+ chan + ":STAN ON;")
+        else:
+            self.inst.write(":PAGE:CHAN:"+ chan + ":STAN OFF;")
+
+
+        self.inst.write(":PAGE:CHAN:"+ chan + ":VNAM\'" + vname + "\';")
+        
+    def configure_integration_time(self, NPLC=16, _int_time=1, short_time=640e-6):
+        int_time = {0:"SHOR", 1:"MED", 2:"LONG"}.get(_int_time, "MED")
+        self.inst.write(":PAGE:MEAS:MSET:ITIME:LONG "+str(NPLC)+";")
+        self.inst.write(":PAGE:MEAS:MSET:ITIME "+int_time+";")
+        self.inst.write(":PAGE:MEAS:MSET:ITIME:SHOR "+str(short_time)+";")
+        
         
 class AgilentE4980a(object):
     
@@ -115,7 +142,7 @@ class AgilentE4980a(object):
     def configure_measurement_signal(self, frequency=10000, _signal_type=0, signal_level=5.0):
         signal_type = {0:"VOLT", 1:"CURR"}.get(_signal_type, "VOLT")
         self.inst.write(":FREQ "+str(float(frequency))+";:"+signal_type+" "+str(float(signal_level)))
-        
+    
     def configure_aperture(self, _meas_time=1, avg_factor=1):
         meas_time = {0:"SHOR", 1:"MED", 2:"LONG"}.get(_meas_time, "MED")
         self.inst.write(":APER "+meas_time+","+str(float(avg_factor))+";")
@@ -136,9 +163,4 @@ class AgilentE4980a(object):
     def read_data(self):
         self.initiate()
         return self.fetch_data()
-        
-        
-        
-        
-        
         
