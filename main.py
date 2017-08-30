@@ -104,7 +104,7 @@ def GetCV(voltmeter, lcrmeter):
         time.sleep(delay_time/2.0)
     
     keithley.enable_output(False)
-
+    
     for i in xrange(0,len(frequencies), 1):
         print "Frequency: " +str(frequencies[i]) 
         print capacitance[i::len(frequencies)]
@@ -116,10 +116,10 @@ def spa_iv(source_param, meas_param):
     current_smu1 = []
     current_smu2 = []
     current_source = []
-    voltage_source = Keithley2400()
+    voltage_source = Keithley2657a()
     voltage_source.init()
     voltage_source.configure_measurement()
-    voltage_source.configure_source(0, 0, 0.1)
+    voltage_source.configure_source(0.1)
     voltage_source.enable_output(True)
     
     daq = Agilent4156()
@@ -127,26 +127,40 @@ def spa_iv(source_param, meas_param):
     daq.configure_integration_time()
     for i in xrange(0, 4, 1):
         daq.configure_channel(i)
-        
+
     for x in xrange(0, 10, 1):
-        
+
         voltage_source.set_output(x)
         time.sleep(0.5)
         daq.configure_measurement()
         daq.configure_sampling_measurement()
         daq.configure_sampling_stop()
+        if x is 0:
+            daq.inst.write(":PAGE:DISP:GRAP:Y2:NAME \'I2\';")
+            print daq.inst.query(":PAGE:DISP:LIST?")
+            daq.inst.write(":PAGE:DISP:LIST \'@TIME\', \'I1\', \'I2\'")
+        
         daq.measurement_actions()
         daq.wait_for_acquisition()
-        current_smu1.append(daq.read_trace_data("I1"))
-        current_smu1.append(daq.read_trace_data("I2"))
-        current_source.append(voltage_source.get_current())
         
-    for x in xrange(0, 10, -2*step_volt):
+        current_smu1.append(daq.read_trace_data("I1"))
+        current_smu2.append(daq.read_trace_data("I2"))
+        current_source.append(voltage_source.get_current())
+        print current_smu1
+        print current_smu2
+        print current_source
+        
+
+    for x in xrange(0, 10, -2*1):
         voltage_source.set_output(x)
         time.sleep(0.25)
         
     voltage_source.set_output(0)
     voltage_source.enable_output(False)
+    print current_smu1
+    print current_smu2
+    print current_source
+    
 
 if __name__=="__main__":
     """
