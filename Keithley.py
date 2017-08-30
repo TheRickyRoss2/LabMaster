@@ -15,7 +15,6 @@ class Keithley2400(object):
             if str(self.gpib_addr) in x:
                 print "found"
                 self.inst = rm.open_resource(x)
-                
         
         print self.inst.query("*IDN?;")
         self.inst.write("*RST;")
@@ -24,13 +23,14 @@ class Keithley2400(object):
         print self.inst.query(":SYST:ERR?;")
         self.inst.timeout= 10000
         
-    def configure_measurement(self, _funct=1):
+    def configure_measurement(self, _meas=1, _src=0, output_level=0, compliance = 5e-6):
         """Set what we are measuring and autoranging"""      
           
-        funct = {0:":VOLT", 1:":CURR", 2:":RES"}.get(_funct, ":CURR")
-        self.inst.write(funct+":RANG:AUTO ON;")
+        meas = {0:":VOLT", 1:":CURR", 2:":RES"}.get(_meas, ":CURR")
+        self.inst.write(meas+":RANG:AUTO ON;")
+        self.__configure_source(_src, output_level, compliance)
     
-    def configure_source(self, _func=0, output_level=0, compliance=0.1):
+    def __configure_source(self, _func=0, output_level=0, compliance=5e-6):
         """Set output level and function"""
         
         assert(_func>=0 and _func<2), "Invalid Source function"
@@ -51,34 +51,35 @@ class Keithley2400(object):
             return
         self.inst.write("OUTP OFF;")
         
-    def configure_multipoint(self, arm_count=1, trigger_count=1, mode=0):
+    def __configure_multipoint(self, arm_count=1, trigger_count=1, mode=0):
         """Configures immediate triggering and arming"""
         
         assert(mode>=0 and mode <3), "Invalid mode"
         source_mode = {0:"FIX", 1:"SWE", 2:"LIST"}.get(mode)
         self.inst.write(":ARM:COUN "+str(arm_count)+";:TRIG:COUN "+str(trigger_count)+";:SOUR:VOLT:MODE "+source_mode+";:SOUR:CURR:MODE "+source_mode)
         
-    def configure_trigger(self, delay=0.0):
+    def __configure_trigger(self, delay=0.0):
         self.inst.write("ARM:SOUR IMM;:ARM:TIM 0.010000;:TRIG:SOUR IMM;:TRIG:DEL "+str(delay)+";")
         
-    def initiate_trigger(self):
+    def __initiate_trigger(self):
         self.inst.write(":TRIG:CLE;:INIT;")
     
-    def wait_operation_complete(self):
+    def __wait_operation_complete(self):
+
         self.inst.write("*OPC;")
 
 
     # TODO parse data from visa buffer 
-    def fetch_measurements(self):
+    def __fetch_measurements(self):
         read_bytes = self.inst.query(":FETC?")
-        return (float(read_bytes.split(",")[0]), float(read_bytes.split(",")[1]))
+        return float(read_bytes.split(",")[1])
         
     def get_current(self, delay=0):
-        self.configure_multipoint()
-        self.configure_trigger(delay)
-        self.initiate_trigger()
-        self.wait_operation_complete()
-        return self.fetch_measurements()
+        self.__configure_multipoint()
+        self.__configure_trigger(delay)
+        self.__initiate_trigger()
+        self.__wait_operation_complete()
+        return self.__fetch_measurements()
         
 class Keithley2657a(object):
     
@@ -88,29 +89,39 @@ class Keithley2657a(object):
         assert(gpib >= 0), "Please enter a valid gpib address"
         self.gpib_addr = gpib
         
-        print "Initializing keithley 2657A"
         rm = visa.ResourceManager()
         self.inst = rm.open_resource(rm.list_resources()[0])
         for x in rm.list_resources():
             if str(self.gpib_addr) in x:
-                print "found"
+                print "Keithley Found"
                 self.inst = rm.open_resource(x)
+            else:
+                print "Keithley not found\nPlease check GPIB Address"
+                exit()
                 
-        #print self.inst.query("*IDN?;")
+        print "Initializing Keithley 2657A"
+
+        print self.inst.query("*IDN?;")
         self.inst.write("reset()")
         self.inst.write("errorqueue.clear() localnode.prompts = 0 localnode.showerrors = 0")
-        #print self.inst.query("print(errorqueue.next())")
+        print self.inst.query("print(errorqueue.next())")
         self.inst.timeout= 10000
+        self.__reset_smu()
         
-    def configure_measurement(self, _source=1):
+    def __configure_source(self, _source=1):
         source = {0:"OUTPUT_DCAMPS", 1:"OUTPUT_DCVOLTS"}.get(_source, "OUTPUT_DCVOLTS")        
         self.inst.write("smua.source.func = smua."+source)
         
     def set_output(self, level=0):
         self.inst.write("smua.source.levelv = "+str(level))
         
-    def configure_source(self, limit=0.1):
+    def __configure_compliance(self, limit=0.1):
         self.inst.write("smua.source.limiti = "+str(limit))
+        
+    def configure_measurement(self, _func = 1, output_level=0, compliance=0.1):
+        self.__configure_source(_func)
+        self.__configure_compliance(compliance)
+        self.set_output(output_level)
         
     def enable_output(self, out=False):
         if out is True:
@@ -121,8 +132,6 @@ class Keithley2657a(object):
     def get_current(self):
         return float(self.inst.query("printnumber(smua.measure.i())").split("\n")[0])
     
-    def reset_smu(self):
+    def __reset_smu(self):
         self.inst.write("smua.reset()")
         
-    
-    

@@ -126,12 +126,12 @@ class AgilentE4980a(object):
         self.inst.write("*ESE 60;*SRE 48;*CLS;")
         self.inst.timeout= 10000
         
-    def configure_measurement(self, _function=0, _impedance=3, autorange=True):
+    def configure_measurement(self, _function=3, _impedance=3, autorange=True):
         
         function = {0:"CPD", 1:"CPQ",  2:"CPG",   3:"CPRP",  4:"CSD",  5:"CSQ", 6:"CSRS",   7:"LPD",
                  8:"LPQ", 9:"LPG", 10:"LPRP", 11:"LPRD", 12:"LSD", 13:"LSQ", 14:"LSRS", 15:"LSRD",
                  16:"RX", 17:"ZTD", 18:"ZTR", 19:"GB",   20:"YTD", 21:"YTR", 22:"VDID"
-                 }.get(_function, "CPD")
+                 }.get(_function, "CPRP")
         
         impedance = {0:"1E-1;",1:"1E+0;",2:"1E+1;", 3:"1E+2;",4:"3E+2;",5:"1E+3;",6:"3E+3;",7:"1E+4",
                      8:"3E+4", 9:"1E+5"}.get(_impedance, "1E+2")
@@ -152,7 +152,7 @@ class AgilentE4980a(object):
     def initiate(self):
         self.inst.write(":INIT;")
     
-    def fetch_data(self):
+    def __fetch_data(self):
         _data_out = self.inst.query(":FETC?")
         #print _data_out
         data_out = _data_out
@@ -164,5 +164,5 @@ class AgilentE4980a(object):
     
     def read_data(self):
         self.initiate()
-        return self.fetch_data()
+        return self.__fetch_data()
         

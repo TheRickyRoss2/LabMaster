@@ -1,13 +1,12 @@
-from Keithley import Keithley2400
-from Agilent import AgilentE4980a
-from Keithley import Keithley2657a
-from Agilent import Agilent4156
+from Keithley import Keithley2400, Keithley2657a
+from Agilent import AgilentE4980a, Agilent4156
 
 import time
 import visa
 import numpy as np
 import matplotlib.pyplot as plt
 import Tkinter as tk
+from numpy import source
 
 rm = visa.ResourceManager()
 print(rm.list_resources())
@@ -16,14 +15,17 @@ print(rm.list_resources())
 #print(inst.query("CLEAR 7"))
 #x = raw_input(">")
 
-def GetIV(voltmeter, graph):
-    (start_volt, end_volt, step_volt, delay_time, hold_time, compliance) = voltmeter
+def GetIV(sourceparam, graph, sourcemeter=0):
+    (start_volt, end_volt, step_volt, delay_time, compliance) = voltmeter
     
     currents = []
-    keithley = Keithley2400()
+    keithley = 0
+    if sourcemeter is 0:
+        keithley = Keithley2400()
+    else:
+        keithley = Keithley2657a()
     keithley.init()
-    keithley.configure_measurement()
-    keithley.configure_source()
+    keithley.configure_measurement(1, 0, 0, compliance)
     last_volt = 0
     badCount = 0
     if start_volt>end_volt:
@@ -34,17 +36,18 @@ def GetIV(voltmeter, graph):
         keithley.set_output(volt)
         time.sleep(delay_time)
         
-        curr = keithley.read_single_point(hold_time)
+        curr = keithley.get_current()
         
-        if(curr[1] > compliance):
+        if(curr > compliance):
             badCount = badCount + 1
-            
+        
         if(badCount>=5):
             print "Compliance reached"
             break
         
         currents.append(curr)
         
+        #TODO Live graphics
         Y = currents
         graph.set_ydata(Y)
         graph.draw()
@@ -54,18 +57,21 @@ def GetIV(voltmeter, graph):
         
     for volt in xrange(last_volt, start_volt, step_volt*-2):
         keithley.set_output(volt)
-        time.sleep(delay_time/2.0)
+        time.sleep(delay_time)
     
     keithley.enable_output(False)
     print currents
     return currents
 
-def GetCV(voltmeter, lcrmeter):
+def GetCV(voltmeter, lcrmeter, sourcemeter = 0):
     capacitance = []
-    keithley = Keithley2400()
+    keithley = 0
+    if sourcemeter is 0:
+        keithley = Keithley2400()
+    else:
+        keithley = Keithley2657a()
     keithley.init()
     keithley.configure_measurement()
-    keithley.configure_source()
     last_volt = 0
     (frequencies, meas_time, avg_factor, signal_type, level, function, impedance) = lcrmeter
     
@@ -111,8 +117,9 @@ def GetCV(voltmeter, lcrmeter):
         
     return capacitance
 
-def spa_iv(source_param, meas_param):
-    
+def spa_iv(sourceparam, meas_param):
+    (start_volt, end_volt, step_volt, delay_time, compliance) = sourceparam
+
     current_smu1 = []
     current_smu2 = []
     current_source = []
@@ -153,7 +160,7 @@ def spa_iv(source_param, meas_param):
 
     for x in xrange(0, 10, -2*1):
         voltage_source.set_output(x)
-        time.sleep(0.25)
+        time.sleep(delay_time)
         
     voltage_source.set_output(0)
     voltage_source.enable_output(False)
@@ -232,4 +239,12 @@ if __name__=="__main__":
     print agilent.read_trace_data()
     """
     
-    spa_iv(0, 0)
+    #spa_iv(0, 0)
+    print "starting"
+    x = 1
+    y=0
+    if x is 0:
+        y = Keithley2400()
+    else:
+        y = Keithley2657a()
+    print y.__class__
