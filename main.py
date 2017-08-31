@@ -3,7 +3,6 @@ from Agilent import AgilentE4980a, Agilent4156
 from emailbot import sendMail
 from Tkinter import Tk, Label, Button, StringVar, Entry, OptionMenu
 import ttk
-from tkFileDialog import asksaveasfile
 from Tkconstants import LEFT, RIGHT
 import matplotlib
 matplotlib.use("TkAgg")
@@ -12,11 +11,8 @@ from matplotlib.figure import Figure
 import time
 import visa
 import tkFileDialog
-import matplotlib.pyplot as plt
-from Tkinter import Tk
-import ttk
 import xlsxwriter
-from numpy import source
+from multiprocessing.pool import ThreadPool
 
 
 rm = visa.ResourceManager()
@@ -39,8 +35,8 @@ def GetIV(sourceparam, sourcemeter=1):
         keithley = Keithley2400()
     else:
         keithley = Keithley2657a()
-    #keithley.init()
-    #keithley.configure_measurement(1, 0, compliance)
+    keithley.init()
+    keithley.configure_measurement(1, 0, compliance)
     last_volt = 0
     badCount = 0
     
@@ -50,11 +46,11 @@ def GetIV(sourceparam, sourcemeter=1):
     for volt in xrange(start_volt, end_volt, step_volt):
         print "in loop"
         
-        #keithley.set_output(volt)
+        keithley.set_output(volt)
         time.sleep(delay_time)
         
-        #curr = keithley.get_current()
-        curr = volt
+        curr = keithley.get_current()
+        #curr = volt
         
         if(abs(curr-compliance)<10e-9):
             badCount = badCount + 1
@@ -214,8 +210,10 @@ def getvalues():
     if source_params is None:
         pass
     else:
-        data = GetIV(source_params, {'Keithley 2400':0, 'Keithley2657a':1}.get(source_choice.get()))
-    
+        pool = ThreadPool(processes = 1)
+        async_result = pool.apply(GetIV, (source_params, {'Keithley 2400':0, 'Keithley2657a':1}.get(source_choice.get())))     
+        data = async_result.get()
+        
     data_out = xlsxwriter.Workbook(filename+".xlsx")
     path = filename+".xlsx"
     worksheet = data_out.add_worksheet()
