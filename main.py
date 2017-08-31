@@ -1,5 +1,6 @@
 from Keithley import Keithley2400, Keithley2657a
 from Agilent import AgilentE4980a, Agilent4156
+from emailbot import sendMail
 
 import time
 import visa
@@ -7,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Tkinter as tk
 from numpy import source
+
 
 rm = visa.ResourceManager()
 print(rm.list_resources())
@@ -16,7 +18,7 @@ print(rm.list_resources())
 #x = raw_input(">")
 
 def GetIV(sourceparam, graph, sourcemeter=0):
-    (start_volt, end_volt, step_volt, delay_time, compliance) = voltmeter
+    (start_volt, end_volt, step_volt, delay_time, compliance) = sourceparam
     
     currents = []
     keithley = 0
@@ -248,3 +250,5 @@ if __name__=="__main__":
     else:
         y = Keithley2657a()
     print y.__class__
+    #sendMail("sample.xlsx", ['rirrodri@ucsc.edu', 'therickyross2@gmail.com'])
+    
