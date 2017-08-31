@@ -1,5 +1,6 @@
 from Keithley import Keithley2400, Keithley2657a
 from Agilent import AgilentE4980a, Agilent4156
+from emailbot import sendMail
 
 import time
 import visa
@@ -7,19 +8,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Tkinter as tk
 from numpy import source
-from matplotlib.pyplot import step
-import xlsxwriter
 
 
 rm = visa.ResourceManager()
 print(rm.list_resources())
-inst = rm.open_resource(rm.list_resources()[0])
+#inst = rm.open_resource(rm.list_resources()[0])
 #print(inst.query("REMOTE 716"))
 #print(inst.query("CLEAR 7"))
 #x = raw_input(">")
 
-def GetIV(sourceparam, graph, sourcemeter=1):
-    (start_volt, end_volt, step_volt, delay_time, compliance) = voltmeter
+def GetIV(sourceparam, graph, sourcemeter=0):
+    (start_volt, end_volt, step_volt, delay_time, compliance) = sourceparam
     
     currents = []
     keithley = 0
@@ -28,10 +27,9 @@ def GetIV(sourceparam, graph, sourcemeter=1):
     else:
         keithley = Keithley2657a()
     keithley.init()
-    keithley.configure_measurement(1, 0, compliance)
+    keithley.configure_measurement(1, 0, 0, compliance)
     last_volt = 0
     badCount = 0
-    
     if start_volt>end_volt:
         step_volt = -1*step_volt
     
@@ -40,9 +38,9 @@ def GetIV(sourceparam, graph, sourcemeter=1):
         keithley.set_output(volt)
         time.sleep(delay_time)
         
-        curr = -1*keithley.get_current()
-        time.sleep(0.5)
-        if(abs(curr-compliance)<50e-9):
+        curr = keithley.get_current()
+        
+        if(curr > compliance):
             badCount = badCount + 1
         
         if(badCount>=5):
@@ -52,25 +50,16 @@ def GetIV(sourceparam, graph, sourcemeter=1):
         currents.append(curr)
         
         #TODO Live graphics
-        """
         Y = currents
         graph.set_ydata(Y)
         graph.draw()
-        """
+        
         last_volt = volt
-        
-        
         #graph point here
         
-    print str(last_volt)+" last"
-    print str(start_volt)+" start"
-    print str(step_volt)+" step"
-
-    for volt in xrange(last_volt, start_volt, step_volt*-1):
+    for volt in xrange(last_volt, start_volt, step_volt*-2):
         keithley.set_output(volt)
-        time.sleep(delay_time/2.0)
-        
-    keithley.set_output(0)
+        time.sleep(delay_time)
     
     keithley.enable_output(False)
     print currents
@@ -118,7 +107,7 @@ def GetCV(voltmeter, lcrmeter, sourcemeter = 0):
         last_volt = volt
         
         #graph point here
-    for volt in xrange(last_volt, start_volt, step_volt*-1):
+    for volt in xrange(last_volt, start_volt, step_volt*-2):
         keithley.set_output(volt)
         time.sleep(delay_time/2.0)
     
@@ -132,25 +121,26 @@ def GetCV(voltmeter, lcrmeter, sourcemeter = 0):
 
 def spa_iv(sourceparam, meas_param):
     (start_volt, end_volt, step_volt, delay_time, compliance) = sourceparam
-    ()
 
     current_smu1 = []
     current_smu2 = []
     current_source = []
     voltage_source = Keithley2657a()
     voltage_source.init()
-    voltage_source.configure_measurement(1, 0, compliance)
+    voltage_source.configure_measurement()
+    voltage_source.configure_source(0.1)
     voltage_source.enable_output(True)
     
     daq = Agilent4156()
     daq.init()
-    daq.configure_integration_time(16, Int_time, 0)
+    daq.configure_integration_time()
     for i in xrange(0, 4, 1):
-        daq.configure_channel(i, funct, mode)
+        daq.configure_channel(i)
 
-    for x in xrange(start_volt, end_volt, step_volt):
+    for x in xrange(0, 10, 1):
 
         voltage_source.set_output(x)
+        time.sleep(0.5)
         daq.configure_measurement()
         daq.configure_sampling_measurement()
         daq.configure_sampling_stop()
@@ -170,11 +160,10 @@ def spa_iv(sourceparam, meas_param):
         print current_source
         
 
-    for x in xrange(end_volt, start_volt, step_volt*-11):
+    for x in xrange(0, 10, -2*1):
         voltage_source.set_output(x)
-        time.sleep(delay_time/2.0)
+        time.sleep(delay_time)
         
-
     voltage_source.set_output(0)
     voltage_source.enable_output(False)
     print current_smu1
@@ -251,6 +240,17 @@ if __name__=="__main__":
     agilent.wait_for_acquisition()
     print agilent.read_trace_data()
     """
+    
+    #spa_iv(0, 0)
+    print "starting"
+    x = 1
+    y=0
+    if x is 0:
+        y = Keithley2400()
+    else:
+        y = Keithley2657a()
+    print y.__class__
+    #sendMail("sample.xlsx", ['rirrodri@ucsc.edu', 'therickyross2@gmail.com'])
     
     start_volt=0
     end_volt=-40
