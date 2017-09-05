@@ -6,6 +6,7 @@ import ttk
 from Tkconstants import LEFT, RIGHT
 import matplotlib
 matplotlib.use("TkAgg")
+
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import time
@@ -13,6 +14,8 @@ import visa
 import tkFileDialog
 import xlsxwriter
 from multiprocessing.pool import ThreadPool
+import Queue
+
 
 
 rm = visa.ResourceManager()
