@@ -3,7 +3,7 @@ import time
 
 class Agilent4156(object):
     
-    def init(self, gpib=6):
+    def __init__(self, gpib=6):
         """Set up gpib controller for device"""
         
         assert(gpib >= 0), "Please enter a valid GPIB address"
@@ -77,6 +77,17 @@ class Agilent4156(object):
         print _data
         data = map(lambda x: float(x), _data.split(","))
         return sum(data)/len(data)
+    
+    def configure_vmu(self, discharge=True, _vmu = 1, _mode =0, name="VMU1"):
+        vmu = {1:"VMU1", 2:"VMU2"}.get(_vmu, "VMU1")
+        mode = {0:"V", 1:"DVOLT"}.get(_mode, "V")
+        self.inst.write(":PAGE:CHAN:"+vmu+":MODE "+mode)
+        if discharge is True:
+            self.inst.write(":PAGE:CHAN:"+vmu+":DCH ON")
+        else:
+            self.inst.write(":PAGE:CHAN:"+vmu+":DCH OFF")
+        self.inst.write(":PAGE:CHAN:"+vmu+":VNAM \'"+name+"\';")
+        
         
     def configure_channel(self, _chan=0, _func=3, _mode = 4, sres=0, standby=False):
         chan = {0:"SMU1", 1:"SMU2", 2:"SMU3", 3:"SMU4"}.get(_chan, "SMU1")

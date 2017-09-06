@@ -6,6 +6,7 @@ import ttk
 from Tkconstants import LEFT, RIGHT
 import matplotlib
 import threading
+from numpy.oldnumeric.random_array import randint
 matplotlib.use("TkAgg")
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -15,6 +16,7 @@ import visa
 import tkFileDialog
 import xlsxwriter
 import Queue
+import random
 
 test=True
 
@@ -25,10 +27,9 @@ print(rm.list_resources())
 #print(inst.query("CLEAR 7"))
 #x = raw_input(">")
 
-f = Figure(figsize=(5,5), dpi=100)
-a = f.add_subplot(111)
 
-def GetIV(sourceparam, sourcemeter=1):
+
+def GetIV(sourceparam, sourcemeter, dataout):
     (start_volt, end_volt, step_volt, delay_time, compliance) = sourceparam
     
     currents = []
@@ -61,7 +62,7 @@ def GetIV(sourceparam, sourcemeter=1):
         time.sleep(delay_time)
         
         if test is True:
-            curr = volt
+            curr = volt+randint(0, 10)
         else:
             curr = keithley.get_current()
         #curr = volt
@@ -82,10 +83,9 @@ def GetIV(sourceparam, sourcemeter=1):
         graph.draw()
         """
         last_volt = volt
+        dataout.put(((voltages, currents), 100*abs((volt+step_volt)/float(end_volt))))
         
-        a.plot(voltages, currents)
-        
-        pb["value"] = volt/(end_volt-step_volt)
+        #pb["value"] = volt/(end_volt-step_volt)
         
         #graph point here
         
@@ -210,35 +210,38 @@ def spa_iv(sourceparam, meas_param):
     voltage_source.enable_output(False)
     print current_smu1
     print current_smu2
-    print current_source
-
-
-
-    
-    
+    print current_source    
 
 def quit():
     root.destroy()
 
 class GuiPart:
     
-    def __init__(self, master, dataqueue):
+    def __init__(self, master, inputdata, outputdata):
+        print "in guipart"
         
-        self.dataqueue = dataqueue
+        self.inputdata = inputdata
+        self.outputdata = outputdata
         
-        start_volt = StringVar()
-        end_volt = StringVar()
-        step_volt = StringVar()
-        hold_time = StringVar()
-        compliance = StringVar() 
-        recipients = StringVar()   
+        self.start_volt = StringVar()
+        self.end_volt = StringVar()
+        self.step_volt = StringVar()
+        self.hold_time = StringVar()
+        self.compliance = StringVar() 
+        self.recipients = StringVar()   
+        self.compliance_scale = StringVar()
+        self.source_choice = StringVar()
+        self.started = False
         
-        start_volt.set("0.0")
-        end_volt.set("100.0")
-        step_volt.set("5.0")
-        hold_time.set("1.0")
-        compliance.set("1.0")
+        self.start_volt.set("0.0")
+        self.end_volt.set("100.0")
+        self.step_volt.set("5.0")
+        self.hold_time.set("1.0")
+        self.compliance.set("1.0")
         
+        self.f = Figure(figsize=(5,5), dpi=100)
+        self.a = self.f.add_subplot(111)
+
         n = ttk.Notebook(root)
         n.grid(row=1, column=0, columnspan=60, rowspan=60, sticky='NESW')
         f1 = ttk.Frame(n)
@@ -254,7 +257,7 @@ class GuiPart:
         s.pack(side=LEFT)
         s.grid(row=0, column=1)
         
-        s = Entry(f1, textvariable = start_volt)
+        s = Entry(f1, textvariable = self.start_volt)
         s.pack(side=LEFT)
         s.grid(row=0, column=2)
         
@@ -267,7 +270,7 @@ class GuiPart:
         s.pack(side=LEFT)
         s.grid(row=1, column=1)
         
-        s = Entry(f1, textvariable = end_volt)
+        s = Entry(f1, textvariable = self.end_volt)
         s.pack(side=LEFT)
         s.grid(row=1, column=2)
         
@@ -279,7 +282,7 @@ class GuiPart:
         s.pack(side=LEFT)
         s.grid(row=2, column=1)
         
-        s = Entry(f1, textvariable = step_volt)
+        s = Entry(f1, textvariable = self.step_volt)
         s.pack(side=LEFT)
         s.grid(row=2, column=2)
         
@@ -291,7 +294,7 @@ class GuiPart:
         s.pack(side=LEFT)
         s.grid(row=3, column=1)
         
-        s = Entry(f1, textvariable = hold_time)
+        s = Entry(f1, textvariable = self.hold_time)
         s.pack(side=LEFT)
         s.grid(row=3, column=2)
         
@@ -303,14 +306,13 @@ class GuiPart:
         s.pack(side=LEFT)
         s.grid(row=4, column=1)
         
-        s = Entry(f1, textvariable = compliance)
+        s = Entry(f1, textvariable = self.compliance)
         s.pack(side=LEFT)
         s.grid(row=4, column=2)
         
         compliance_choices = {'mA', 'uA', 'nA'}
-        compliance_scale = StringVar()
-        compliance_scale.set('uA')
-        s = OptionMenu(f1, compliance_scale, *compliance_choices)
+        self.compliance_scale.set('uA')
+        s = OptionMenu(f1, self.compliance_scale, *compliance_choices)
         s.pack(side=LEFT)
         s.grid(row=4, column=3)
         
@@ -318,7 +320,7 @@ class GuiPart:
         s.pack(side=LEFT)
         s.grid(row=5, column=1)
         
-        s = Entry(f1, textvariable = recipients)
+        s = Entry(f1, textvariable = self.recipients)
         s.pack(side=LEFT)
         s.grid(row=5, column=2)
         
@@ -327,9 +329,8 @@ class GuiPart:
         s.grid(row=5, column=3)
     
         source_choices = {'Keithley 2400', 'Keithley 2657a'}
-        source_choice = StringVar()
-        source_choice.set('Keithley 2657a')
-        s = OptionMenu(f1, source_choice, *source_choices)
+        self.source_choice.set('Keithley 2657a')
+        s = OptionMenu(f1, self.source_choice, *source_choices)
         s.pack(side=LEFT)
         s.grid(row=0, column=7)
         
@@ -337,39 +338,56 @@ class GuiPart:
         s.pack(side=LEFT)
         s.grid(row=11, column=1)
         
-        pb = ttk.Progressbar(f1, orient="horizontal", length=200, mode="determinate")
-        pb.pack(side=LEFT)
-        pb.grid(row=11, column= 2, columnspan=5)
-        pb["maximum"] = 100
-        pb["value"] = 0
+        self.pb = ttk.Progressbar(f1, orient="horizontal", length=200, mode="determinate")
+        self.pb.pack(side=LEFT)
+        self.pb.grid(row=11, column= 2, columnspan=5)
+        self.pb["maximum"] = 100
+        self.pb["value"] = 0
         
-        canvas = FigureCanvasTkAgg(f, master=f1)
-        canvas.get_tk_widget().grid(row=10, columnspan=10)
-        canvas.draw()
+        self.canvas = FigureCanvasTkAgg(self.f, master=f1)
+        self.canvas.get_tk_widget().grid(row=6, columnspan=10)
+        self.canvas.draw()
         
-        s = Button(f1, text="Start IV", command=getvalues)
+        s = Button(f1, text="Start IV", command=self.prepare_values)
         s.pack(side=RIGHT)
         s.grid(row=3, column=7)
         
         s = Button(f1, text="Stop", command=quit)
         s.pack(side=RIGHT)
         s.grid(row=4, column=7)
-    
+        print "finished drawing"
+        
+        
     def update(self):
-        while self.dataqueue.qsize():
+        while self.outputdata.qsize():
             try:
-                (data, percent) = self.dataqueue.get(0)
-                print "Current data" + str(data)+ "; Percent done:" +str(percent)
+                (data, percent) = self.outputdata.get(0)
+                print "Percent done:" +str(percent)
+                self.pb["value"] = percent
+                self.pb.update()
+                (voltages, currents) = data
+                self.a.plot(voltages, currents)
+                self.canvas.draw()
+
             except Queue.Empty:
                 pass
-def getvalues(input_params):
-    
+        
+    def prepare_values(self):
+        print "preparing values"
+        input_params = (self.compliance.get(), self.compliance_scale.get(), self.start_volt.get(), self.end_volt.get(), self.step_volt.get(), self.hold_time.get(), self.source_choice.get())
+        #getvalues(self.input_params)
+        self.inputdata.put(input_params)        
+        
+def getvalues(input_params, dataout):
+    print input_params
     filename = tkFileDialog.asksaveasfilename(initialdir = "/",title = "Save data",filetypes = (("Microsoft Excel file","*.xlsx"),("all files","*.*")))
-    source_params = ()
+    (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice) = input_params
+        
+
     try:
-        comp = float(compliance.get())*{'mA':1e-3, 'uA':1e-6, 'nA':1e-9}.get(compliance_scale.get())
-        source_params = (int(float(start_volt.get())), int(float(end_volt.get())), int(float(step_volt.get())),
-                             float(hold_time.get()), comp)
+        comp = float(float(compliance)*({'mA':1e-3, 'uA':1e-6, 'nA':1e-9}.get(compliance_scale, 1e-6)))
+        source_params = (int(float(start_volt)), int(float(end_volt)), int(float(step_volt)),
+                             float(hold_time), comp)
         print source_params
     except ValueError:
         print "Please fill in all fields!"
@@ -377,7 +395,7 @@ def getvalues(input_params):
     if source_params is None:
         pass
     else:
-        data = GetIV(source_params, 1)
+        data = GetIV(source_params, 1, dataout)
             
     data_out = xlsxwriter.Workbook(filename+".xlsx")
     path = filename+".xlsx"
@@ -394,14 +412,14 @@ def getvalues(input_params):
         worksheet.write(row, col, volt)
         worksheet.write(row, col+1, cur)
         row+=1
-        
+    
     chart.add_series({'categories': '=Sheet1!$A$1:$A$'+str(row), 'values': '=Sheet1!$B$1:$B$'+str(row)})
     chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
     chart.set_y_axis({'name':'Current [A]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
     chart.set_legend({'none':True})
     worksheet.insert_chart('D2', chart)
     data_out.close()
-        
+    
     try:
         mails = recipients.get().split(",")
         sentTo = []
@@ -414,22 +432,50 @@ def getvalues(input_params):
         pass
         
     print data
+
 class ThreadedProgram:
     
     def __init__(self, master):
         self.master = master
         self.inputdata = Queue.Queue()
-        self.outputdata = Queue.Queue
-        self.gui = GuiPart()
+        self.outputdata = Queue.Queue()
+        print "making gui"
+        self.gui = GuiPart(master, self.inputdata, self.outputdata)
         
-    
+        self.running = 1
+        self.thread1 = threading.Thread(target=self.workerThread1)
+        self.thread1.start()
+        self.periodicCall()
+        self.measuring = False
+        
+    def periodicCall(self):
+        self.gui.update()
+        if not self.running:
+            import sys
+            sys.exit(1)
+        self.master.after(200, self.periodicCall)
+        
+    def workerThread1(self):
+        while self.running:
+            #print "looping"
+            if self.inputdata.empty() is False and self.measuring is False:
+                self.measuring= True
+                print "doing stuff"
+                print self.inputdata
+                getvalues(self.inputdata.get(), self.outputdata)
+                self.measuring=False
         
 if __name__=="__main__":
     
     root = Tk()
     root.geometry('600x750')
     root.title('Adap')
+    client = ThreadedProgram(root)
+    root.mainloop() 
     
+    """
     
-    
-    root.mainloop()    
+    agilent = Agilent4156()
+    agilent.configure_vmu(discharge=True, _vmu=2, _mode = 1, name="GOOD")
+    agilent.read_trace_data("VM1")
+    """
