@@ -6,11 +6,11 @@ import ttk
 from Tkconstants import LEFT, RIGHT
 import matplotlib
 import threading
-from numpy.oldnumeric.random_array import randint
 matplotlib.use("TkAgg")
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+from matplotlib import pyplot as plt
 import time
 import visa
 import tkFileDialog
@@ -212,17 +212,15 @@ def spa_iv(sourceparam, meas_param):
     print current_smu2
     print current_source    
 
-def quit():
-    root.destroy()
+
 
 class GuiPart:
     
-    def __init__(self, master, inputdata, outputdata):
+    def __init__(self, master, inputdata, outputdata, endcommand):
         print "in guipart"
         
         self.inputdata = inputdata
         self.outputdata = outputdata
-        
         self.start_volt = StringVar()
         self.end_volt = StringVar()
         self.step_volt = StringVar()
@@ -239,7 +237,7 @@ class GuiPart:
         self.hold_time.set("1.0")
         self.compliance.set("1.0")
         
-        self.f = Figure(figsize=(5,5), dpi=100)
+        self.f = plt.figure(figsize=(3,3), dpi=100)
         self.a = self.f.add_subplot(111)
 
         n = ttk.Notebook(root)
@@ -334,7 +332,7 @@ class GuiPart:
         s.pack(side=LEFT)
         s.grid(row=0, column=7)
         
-        s = Label(f1, text="Percent Complete:")
+        s = Label(f1, text="Progress:")
         s.pack(side=LEFT)
         s.grid(row=11, column=1)
         
@@ -346,13 +344,17 @@ class GuiPart:
         
         self.canvas = FigureCanvasTkAgg(self.f, master=f1)
         self.canvas.get_tk_widget().grid(row=6, columnspan=10)
+        plt.xlabel("Voltage")
+        plt.ylabel("Current")
+        plt.title("IV")
+        #plt.show()
         self.canvas.draw()
         
         s = Button(f1, text="Start IV", command=self.prepare_values)
         s.pack(side=RIGHT)
         s.grid(row=3, column=7)
         
-        s = Button(f1, text="Stop", command=quit)
+        s = Button(f1, text="Stop", command=endcommand)
         s.pack(side=RIGHT)
         s.grid(row=4, column=7)
         print "finished drawing"
@@ -371,19 +373,24 @@ class GuiPart:
 
             except Queue.Empty:
                 pass
-        
+    
+    def quit(self):
+        import sys
+        sys.exit(1)
+        #root.destroy()
+    
     def prepare_values(self):
         print "preparing values"
         input_params = (self.compliance.get(), self.compliance_scale.get(), self.start_volt.get(), self.end_volt.get(), self.step_volt.get(), self.hold_time.get(), self.source_choice.get())
         #getvalues(self.input_params)
-        self.inputdata.put(input_params)        
+        self.inputdata.put(input_params)   
+         
         
 def getvalues(input_params, dataout):
     print input_params
     filename = tkFileDialog.asksaveasfilename(initialdir = "/",title = "Save data",filetypes = (("Microsoft Excel file","*.xlsx"),("all files","*.*")))
     (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice) = input_params
-        
-
+    
     try:
         comp = float(float(compliance)*({'mA':1e-3, 'uA':1e-6, 'nA':1e-9}.get(compliance_scale, 1e-6)))
         source_params = (int(float(start_volt)), int(float(end_volt)), int(float(step_volt)),
@@ -440,9 +447,10 @@ class ThreadedProgram:
         self.inputdata = Queue.Queue()
         self.outputdata = Queue.Queue()
         print "making gui"
-        self.gui = GuiPart(master, self.inputdata, self.outputdata)
         
         self.running = 1
+        self.gui = GuiPart(master, self.inputdata, self.outputdata, self.endapp)
+
         self.thread1 = threading.Thread(target=self.workerThread1)
         self.thread1.start()
         self.periodicCall()
@@ -465,10 +473,12 @@ class ThreadedProgram:
                 getvalues(self.inputdata.get(), self.outputdata)
                 self.measuring=False
         
+    def endapp(self):
+        self.running = 0
 if __name__=="__main__":
     
     root = Tk()
-    root.geometry('600x750')
+    root.geometry('610x570')
     root.title('Adap')
     client = ThreadedProgram(root)
     root.mainloop() 
