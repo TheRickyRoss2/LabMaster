@@ -6,6 +6,7 @@ import ttk
 from Tkconstants import LEFT, RIGHT
 import matplotlib
 import threading
+from random import randint
 matplotlib.use("TkAgg")
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -26,8 +27,6 @@ print(rm.list_resources())
 #print(inst.query("REMOTE 716"))
 #print(inst.query("CLEAR 7"))
 #x = raw_input(">")
-
-
 
 def GetIV(sourceparam, sourcemeter, dataout):
     (start_volt, end_volt, step_volt, delay_time, compliance) = sourceparam
@@ -107,8 +106,10 @@ def GetIV(sourceparam, sourcemeter, dataout):
         keithley.enable_output(False)
     return (voltages, currents)
 
-def GetCV(voltmeter, lcrmeter, sourcemeter = 0):
+def GetCV(sourceparam, lcrparam, sourcemeter, dataout):
     capacitance = []
+    voltages = []
+    
     keithley = 0
     if sourcemeter is 0:
         keithley = Keithley2400()
@@ -117,9 +118,9 @@ def GetCV(voltmeter, lcrmeter, sourcemeter = 0):
     keithley.init()
     keithley.configure_measurement()
     last_volt = 0
-    (frequencies, meas_time, avg_factor, signal_type, level, function, impedance) = lcrmeter
+    (frequencies, meas_time, avg_factor, signal_type, level, function, impedance) = lcrparam
     
-    (start_volt, end_volt, step_volt, hold_time, delay_time, compliance) = voltmeter
+    (start_volt, end_volt, step_volt, hold_time, delay_time, compliance) = sourceparam
     
     agilent = AgilentE4980a()
     agilent.init()
@@ -229,6 +230,17 @@ class GuiPart:
         self.recipients = StringVar()   
         self.compliance_scale = StringVar()
         self.source_choice = StringVar()
+        
+        self.cv_start_volt = StringVar()
+        self.cv_end_volt = StringVar()
+        self.cv_step_volt = StringVar()
+        self.cv_hold_time = StringVar()
+        self.cv_compliance = StringVar() 
+        self.cv_recipients = StringVar()   
+        self.cv_compliance_scale = StringVar()
+        self.cv_
+        self.cv_source_choice = StringVar()
+        
         self.started = False
         
         self.start_volt.set("0.0")
@@ -245,11 +257,9 @@ class GuiPart:
         f1 = ttk.Frame(n)
         f2 = ttk.Frame(n)
         f3 = ttk.Frame(n)
-        f4 = ttk.Frame(n)
         n.add(f1, text='IV')
         n.add(f2, text='CV')
         n.add(f3, text='SPA IV')
-        n.add(f4, text='Bot')
         
         s = Label(f1, text="Start Volt")
         s.pack(side=LEFT)
@@ -262,7 +272,6 @@ class GuiPart:
         s = Label(f1, text="V")
         s.pack(side=LEFT)
         s.grid(row=0, column=3)
-        
         
         s = Label(f1, text="End Volt")
         s.pack(side=LEFT)
@@ -475,6 +484,7 @@ class ThreadedProgram:
         
     def endapp(self):
         self.running = 0
+        
 if __name__=="__main__":
     
     root = Tk()
