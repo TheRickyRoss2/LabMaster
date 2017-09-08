@@ -21,15 +21,16 @@ class Keithley2400(object):
         #self.inst.query("*RST;*IDN?;")
         self.inst.write("*ESE 1;*SRE 32;*CLS;:FUNC:CONC ON;:FUNC:ALL;:TRAC:FEED:CONT NEV;:RES:MODE MAN;")
         print self.inst.query(":SYST:ERR?;")
+        self.inst.write(":DISP:CND;")
         self.inst.timeout= 10000
         
     def configure_measurement(self, _meas=1, _src=0, output_level=0, compliance = 5e-6):
         """Set what we are measuring and autoranging"""      
-          
+        
         meas = {0:":VOLT", 1:":CURR", 2:":RES"}.get(_meas, ":CURR")
         self.inst.write(meas+":RANG:AUTO ON;")
         self.__configure_source(_src, output_level, compliance)
-    
+        
     def __configure_source(self, _func=0, output_level=0, compliance=5e-6):
         """Set output level and function"""
         
@@ -101,10 +102,11 @@ class Keithley2657a(object):
                 
         print "Initializing Keithley 2657A"
 
-        print self.inst.query("*IDN?;")
+        print self.inst.query("*IDN?")
         self.inst.write("reset()")
         self.inst.write("errorqueue.clear() localnode.prompts = 0 localnode.showerrors = 0")
         print self.inst.query("print(errorqueue.next())")
+        self.inst.write("display.smua.measure.func = display.MEASURE_DCAMPS")
         self.inst.timeout= 10000
         self.__reset_smu()
         
@@ -114,6 +116,7 @@ class Keithley2657a(object):
         
     def set_output(self, level=0):
         self.inst.write("smua.source.levelv = "+str(level))
+        self.enable_output(True)
         
     def __configure_compliance(self, limit=0.1):
         self.inst.write("smua.source.limiti = "+str(limit))

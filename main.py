@@ -1,9 +1,10 @@
+# -*- coding: utf-8 -*-
 from Keithley import Keithley2400, Keithley2657a
 from Agilent import AgilentE4980a, Agilent4156
 from emailbot import sendMail
 from Tkinter import Tk, Label, Button, StringVar, Entry, OptionMenu
 import ttk
-from Tkconstants import LEFT, RIGHT
+from Tkconstants import LEFT, RIGHT, RAISED
 import matplotlib
 import threading
 from random import randint
@@ -19,7 +20,7 @@ import xlsxwriter
 import Queue
 import random
 
-test=True
+test=False
 
 rm = visa.ResourceManager()
 print(rm.list_resources())
@@ -61,15 +62,17 @@ def GetIV(sourceparam, sourcemeter, dataout):
         time.sleep(delay_time)
         
         if test is True:
-            curr = volt+randint(0, 10)
+            curr = (volt+randint(0, 10))
         else:
             curr = keithley.get_current()
         #curr = volt
         
-        if(abs(curr-compliance)<10e-9):
-            badCount = badCount + 1
+        if abs(curr)>abs(compliance-50e-9):
+            badCount = badCount + 1        
+        else:
+            badCount = 0    
         
-        if(badCount>=5):
+        if badCount>=5 :
             print "Compliance reached"
             break
         
@@ -84,16 +87,14 @@ def GetIV(sourceparam, sourcemeter, dataout):
         last_volt = volt
         dataout.put(((voltages, currents), 100*abs((volt+step_volt)/float(end_volt))))
         
-        #pb["value"] = volt/(end_volt-step_volt)
-        
-        #graph point here
         
     while abs(last_volt)>5:
         if test is True:
             pass
         else:
             keithley.set_output(last_volt)
-        time.sleep(delay_time/2.0)
+        
+        time.sleep(0.5)
         if last_volt < 0:
             last_volt +=5
         else:
@@ -107,20 +108,26 @@ def GetIV(sourceparam, sourcemeter, dataout):
     return (voltages, currents)
 
 def GetCV(sourceparam, lcrparam, sourcemeter, dataout):
+    
     capacitance = []
     voltages = []
     
     keithley = 0
-    if sourcemeter is 0:
-        keithley = Keithley2400()
+    
+    if test is True:
+        pass
     else:
-        keithley = Keithley2657a()
-    keithley.init()
-    keithley.configure_measurement()
+        if sourcemeter is 0:
+            keithley = Keithley2400()
+        else:
+            keithley = Keithley2657a()
+        keithley.init()
+        keithley.configure_measurement()
+        
     last_volt = 0
     (frequencies, meas_time, avg_factor, signal_type, level, function, impedance) = lcrparam
     
-    (start_volt, end_volt, step_volt, hold_time, delay_time, compliance) = sourceparam
+    (start_volt, end_volt, step_volt, delay_time, compliance) = sourceparam
     
     agilent = AgilentE4980a()
     agilent.init()
@@ -148,7 +155,6 @@ def GetCV(sourceparam, lcrparam, sourcemeter, dataout):
             print "Compliance reached"
             break
         last_volt = volt
-        
         #graph point here
     for volt in xrange(last_volt, start_volt, step_volt*-2):
         keithley.set_output(volt)
@@ -222,6 +228,7 @@ class GuiPart:
         
         self.inputdata = inputdata
         self.outputdata = outputdata
+        
         self.start_volt = StringVar()
         self.end_volt = StringVar()
         self.step_volt = StringVar()
@@ -238,9 +245,11 @@ class GuiPart:
         self.cv_compliance = StringVar() 
         self.cv_recipients = StringVar()   
         self.cv_compliance_scale = StringVar()
-        self.cv_
         self.cv_source_choice = StringVar()
+        self.cv_impedance_scale = StringVar()
         
+        self.cv_frequencies = StringVar()
+        self.cv_integration = StringVar()
         self.started = False
         
         self.start_volt.set("0.0")
@@ -249,8 +258,11 @@ class GuiPart:
         self.hold_time.set("1.0")
         self.compliance.set("1.0")
         
-        self.f = plt.figure(figsize=(3,3), dpi=100)
+        self.f = plt.figure(figsize=(4, 4), dpi=75)
         self.a = self.f.add_subplot(111)
+        
+        self.cv_f = plt.figure(figsize=(4, 4), dpi=75)
+        self.cv_a = self.cv_f.add_subplot(111)
 
         n = ttk.Notebook(root)
         n.grid(row=1, column=0, columnspan=60, rowspan=60, sticky='NESW')
@@ -353,10 +365,14 @@ class GuiPart:
         
         self.canvas = FigureCanvasTkAgg(self.f, master=f1)
         self.canvas.get_tk_widget().grid(row=6, columnspan=10)
-        plt.xlabel("Voltage")
-        plt.ylabel("Current")
-        plt.title("IV")
-        #plt.show()
+        self.a.set_title("IV")
+        
+        self.a.set_xlabel("Voltage")
+        self.a.set_ylabel("Current")
+
+        #plt.xlabel("Voltage")
+        #plt.ylabel("Current")
+        #plt.title("IV")
         self.canvas.draw()
         
         s = Button(f1, text="Start IV", command=self.prepare_values)
@@ -366,6 +382,146 @@ class GuiPart:
         s = Button(f1, text="Stop", command=endcommand)
         s.pack(side=RIGHT)
         s.grid(row=4, column=7)
+        
+        """
+        CV GUI
+        """
+        s = Label(f2, text="Start Volt")
+        s.pack(side=LEFT)
+        s.grid(row=0, column=1)
+        
+        s = Entry(f2, textvariable = self.cv_start_volt)
+        s.pack(side=LEFT)
+        s.grid(row=0, column=2)
+        
+        s = Label(f2, text="V")
+        s.pack(side=LEFT)
+        s.grid(row=0, column=3)
+        
+        s = Label(f2, text="End Volt")
+        s.pack(side=LEFT)
+        s.grid(row=1, column=1)
+        
+        s = Entry(f2, textvariable = self.cv_end_volt)
+        s.pack(side=LEFT)
+        s.grid(row=1, column=2)
+        
+        s = Label(f2, text="V")
+        s.pack(side=LEFT)
+        s.grid(row=1, column=3)
+        
+        s = Label(f2, text="Step Volt")
+        s.pack(side=LEFT)
+        s.grid(row=2, column=1)
+        
+        s = Entry(f2, textvariable = self.cv_step_volt)
+        s.pack(side=LEFT)
+        s.grid(row=2, column=2)
+        
+        s = Label(f2, text="V")
+        s.pack(side=LEFT)
+        s.grid(row=2, column=3)
+        
+        s = Label(f2, text="Hold Time")
+        s.pack(side=LEFT)
+        s.grid(row=3, column=1)
+        
+        s = Entry(f2, textvariable = self.cv_hold_time)
+        s.pack(side=LEFT)
+        s.grid(row=3, column=2)
+        
+        s = Label(f2, text="s")
+        s.pack(side=LEFT)
+        s.grid(row=3, column=3)
+        
+        s = Label(f2, text="Compliance")
+        s.pack(side=LEFT)
+        s.grid(row=4, column=1)
+        
+        s = Entry(f2, textvariable = self.cv_compliance)
+        s.pack(side=LEFT)
+        s.grid(row=4, column=2)
+        
+        function_choices = {"CPD", "CPQ",  "CPG",   "CPRP",  "CSD",  "CSQ", "CSRS",   "LPD",
+                 "LPQ", "LPG", "LPRP", "LPRD", "LSD", "LSQ", "LSRS", "LSRD",
+                 "RX", "ZTD", "ZTR", "GB",   "YTD", "YTR", "VDID"
+                 }
+
+        self.cv_compliance_scale.set('uA')
+        s = OptionMenu(f2, self.cv_compliance_scale, *compliance_choices)
+        s.pack(side=LEFT)
+        s.grid(row=4, column=3)
+        
+        s = Label(f2, text="Email data to:")
+        s.pack(side=LEFT)
+        s.grid(row=5, column=1)
+        
+        s = Entry(f2, textvariable = self.cv_recipients)
+        s.pack(side=LEFT)
+        s.grid(row=5, column=2)
+        
+        s = Label(f2, text="Separate with ','")
+        s.pack(side=LEFT)
+        s.grid(row=5, column=3)
+        
+        s = Label(f2, text="Agilent LCRMeter Parameters", relief=RAISED)
+        s.pack(side=LEFT)
+        s.grid(row=6, column=1, columnspan=2)
+        
+        self.cv_impedance = StringVar()
+        s = Label(f2, text="Function")
+        s.pack(side=LEFT)
+        s.grid(row=7, column=1)
+        
+        self.cv_function_choice = StringVar()
+        self.cv_function_choice.set('CPD')
+        s = OptionMenu(f2, self.cv_function_choice, *function_choices)
+        s.pack(side=LEFT)
+        s.grid(row=7, column=2)
+        
+        self.cv_impedance.set("2000")
+        s = Label(f2, text="Impedance")
+        s.pack(side=LEFT)
+        s.grid(row=8, column=1)
+        
+        s = Entry(f2, textvariable=self.cv_impedance )
+        s.pack(side=LEFT)
+        s.grid(row=8, column=2)
+        
+        s = Label(f2, text="Ω")
+        s.pack(side=LEFT)
+        s.grid(row=8, column=3)
+    
+        self.cv_source_choice.set('Keithley 2657a')
+        s = OptionMenu(f2, self.cv_source_choice, *source_choices)
+        s.pack(side=LEFT)
+        s.grid(row=0, column=7)
+        
+        s = Label(f2, text="Progress:")
+        s.pack(side=LEFT)
+        s.grid(row=11, column=1)
+        
+        self.cv_pb = ttk.Progressbar(f2, orient="horizontal", length=200, mode="determinate")
+        self.cv_pb.pack(side=LEFT)
+        self.cv_pb.grid(row=11, column= 2, columnspan=5)
+        self.cv_pb["maximum"] = 100
+        self.cv_pb["value"] = 0
+        
+        self.cv_canvas = FigureCanvasTkAgg(self.cv_f, master=f2)
+        self.cv_canvas.get_tk_widget().grid(row=10, columnspan=10)
+        self.cv_a.set_title("CV")
+        self.cv_a.set_xlabel("Voltage")
+        self.cv_a.set_ylabel("Capacitance")
+        self.cv_canvas.draw()
+        
+        s = Button(f2, text="Start CV", command=self.cv_prepare_values)
+        s.pack(side=RIGHT)
+        s.grid(row=3, column=7)
+        
+        s = Button(f2, text="Stop", command=endcommand)
+        s.pack(side=RIGHT)
+        s.grid(row=4, column=7)
+        
         print "finished drawing"
         
         
@@ -377,7 +533,10 @@ class GuiPart:
                 self.pb["value"] = percent
                 self.pb.update()
                 (voltages, currents) = data
-                self.a.plot(voltages, currents)
+                line, = self.a.plot(voltages, currents)
+                line.set_antialiased(True)
+                line.set_linestyle('solid')
+                line.set_color('r')
                 self.canvas.draw()
 
             except Queue.Empty:
@@ -389,13 +548,71 @@ class GuiPart:
         #root.destroy()
     
     def prepare_values(self):
-        print "preparing values"
-        input_params = (self.compliance.get(), self.compliance_scale.get(), self.start_volt.get(), self.end_volt.get(), self.step_volt.get(), self.hold_time.get(), self.source_choice.get())
-        #getvalues(self.input_params)
+        print "preparing iv values"
+        input_params = ((self.compliance.get(), self.compliance_scale.get(), self.start_volt.get(), self.end_volt.get(), self.step_volt.get(), self.hold_time.get(), self.source_choice.get()), 0)
         self.inputdata.put(input_params)   
+        
+    def cv_prepare_values(self):
+        print "preparing cv values"
+        input_params = ((self.cv_compliance.get(), self.cv_compliance_scale.get(), self.cv_start_volt.get(), self.cv_end_volt.get(), self.cv_step_volt.get(), self.cv_hold_time.get(), self.cv_source_choice.get()), 1)
+        self.inputdata.put(input_params)  
          
         
 def getvalues(input_params, dataout):
+    print input_params
+    filename = tkFileDialog.asksaveasfilename(initialdir = "/",title = "Save data",filetypes = (("Microsoft Excel file","*.xlsx"),("all files","*.*")))
+    (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice) = input_params
+    
+    try:
+        comp = float(float(compliance)*({'mA':1e-3, 'uA':1e-6, 'nA':1e-9}.get(compliance_scale, 1e-6)))
+        source_params = (int(float(start_volt)), int(float(end_volt)), int(float(step_volt)),
+                             float(hold_time), comp)
+        print source_params
+    except ValueError:
+        print "Please fill in all fields!"
+    data = ()
+    if source_params is None:
+        pass
+    else:
+        data = GetIV(source_params, {"Keithley 2675a":1, "Keithley 2400":0}.get(source_choice, 0), dataout)
+            
+    data_out = xlsxwriter.Workbook(filename+".xlsx")
+    path = filename+".xlsx"
+    worksheet = data_out.add_worksheet()
+    (v, i) = data
+    values = []
+    for x in xrange(0,len(v), 1):
+        values.append((v[x], i[x]))
+    row=0
+    col=0
+    chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
+    
+    for volt, cur in values:
+        worksheet.write(row, col, volt)
+        worksheet.write(row, col+1, cur)
+        row+=1
+    
+    chart.add_series({'categories': '=Sheet1!$A$1:$A$'+str(row), 'values': '=Sheet1!$B$1:$B$'+str(row)})
+    chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+    chart.set_y_axis({'name':'Current [A]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+    chart.set_legend({'none':True})
+    worksheet.insert_chart('D2', chart)
+    data_out.close()
+    
+    try:
+        mails = recipients.get().split(",")
+        sentTo = []
+        for mailee in mails:
+            sentTo.append(mailee.strip())
+                
+        print sentTo
+        sendMail(path, sentTo)
+    except:
+        pass
+        
+    print data
+
+def cv_getvalues(input_params, dataout):
     print input_params
     filename = tkFileDialog.asksaveasfilename(initialdir = "/",title = "Save data",filetypes = (("Microsoft Excel file","*.xlsx"),("all files","*.*")))
     (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice) = input_params
@@ -449,6 +666,7 @@ def getvalues(input_params, dataout):
         
     print data
 
+
 class ThreadedProgram:
     
     def __init__(self, master):
@@ -478,8 +696,14 @@ class ThreadedProgram:
             if self.inputdata.empty() is False and self.measuring is False:
                 self.measuring= True
                 print "doing stuff"
-                print self.inputdata
-                getvalues(self.inputdata.get(), self.outputdata)
+                #print self.inputdata
+                (params, type) = self.inputdata.get()
+                if type is 0:
+                    getvalues(params, self.outputdata)
+                elif type is 1:
+                    cv_getvalues(params, self.outputdata)
+                else:
+                    spa_getvalues(params, self.outputdata)
                 self.measuring=False
         
     def endapp(self):
@@ -488,7 +712,7 @@ class ThreadedProgram:
 if __name__=="__main__":
     
     root = Tk()
-    root.geometry('610x570')
+    root.geometry('610x800')
     root.title('Adap')
     client = ThreadedProgram(root)
     root.mainloop() 
