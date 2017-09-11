@@ -10,7 +10,7 @@ class Keithley2400(object):
         
         print "Initializing keithley 2400"
         rm = visa.ResourceManager()
-        self.inst = rm.open_resource(rm.list_resources()[0])
+        self.inst = 0
         for x in rm.list_resources():
             if str(self.gpib_addr) in x:
                 print "found"

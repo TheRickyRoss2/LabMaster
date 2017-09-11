@@ -8,6 +8,7 @@ from Tkconstants import LEFT, RIGHT, RAISED
 import matplotlib
 import threading
 from random import randint
+from _ast import Param
 matplotlib.use("TkAgg")
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -107,10 +108,14 @@ def GetIV(sourceparam, sourcemeter, dataout):
         keithley.enable_output(False)
     return (voltages, currents)
 
-def GetCV(sourceparam, lcrparam, sourcemeter, dataout):
+def GetCV(params, sourcemeter, dataout):
     
     capacitance = []
     voltages = []
+    parameter2 = []
+    p2=  []
+    c = []
+    currents = []
     
     keithley = 0
     
@@ -125,48 +130,90 @@ def GetCV(sourceparam, lcrparam, sourcemeter, dataout):
         keithley.configure_measurement()
         
     last_volt = 0
-    (frequencies, meas_time, avg_factor, signal_type, level, function, impedance) = lcrparam
     
-    (start_volt, end_volt, step_volt, delay_time, compliance) = sourceparam
-    
-    agilent = AgilentE4980a()
-    agilent.init()
-    agilent.configure_measurement(function, impedance)
-    agilent.configure_aperture(meas_time, avg_factor)
+    (start_volt, end_volt, step_volt, delay_time, compliance,
+     frequencies, level, function, impedance, int_time) = params
+    print "CV PARAMS---------"
+    print params
+    print "CV PARAMS END______"
+    if test is True:
+        pass
+    else:
+        agilent = AgilentE4980a()
+        agilent.init()
+        agilent.configure_measurement(function)
+        agilent.configure_aperture(int_time)
     badCount = 0
+    
     if start_volt>end_volt:
         step_volt = -1*step_volt
     
     for volt in xrange(start_volt, end_volt, step_volt):
         
-        keithley.set_output(volt)
-        time.sleep(delay_time)
-        for f in frequencies:
-            agilent.configure_measurement_signal(f, signal_type, level)
-            data = agilent.read_data()
-            capacitance.append(data)
-        
-        
-        curr = keithley.read_single_point(hold_time)
-        if(curr[1] > compliance):
-            badCount = badCount + 1
+        if test is True:
+            pass
+        else:
+            keithley.set_output(volt)
             
-        if(badCount>=5):
+        curr = 0
+        for f in frequencies:
+            time.sleep(delay_time)
+
+            if test is True:
+                capacitance.append((volt*float(f)))
+            else:
+                agilent.configure_measurement_signal(float(f), 0, level)
+                (data, aux) = agilent.read_data()
+                capacitance.append(data)
+                p2.append(aux)
+                
+                if test is True:
+                    curr = volt
+                else:
+                    curr= keithley.get_current()
+                c.append(curr)
+        
+            
+        if abs(curr)>abs(compliance-50e-9):
+            badCount = badCount + 1        
+        else:
+            badCount = 0    
+        
+        if badCount>=5 :
             print "Compliance reached"
             break
+        
+        voltages.append(volt)
+        formatted_cap = []
+        for i in xrange(0,len(frequencies), 1):
+            print "Frequency: " +str(frequencies[i]) 
+            print capacitance[i::len(frequencies)]
+            formatted_cap.append(capacitance[i::len(frequencies)])
+            parameter2.append(p2[i::len(frequencies)])
+            currents.append(c[i::len(frequencies)])
+        dataout.put(((voltages, formatted_cap), 100*abs((volt+step_volt)/float(end_volt))))
+        
         last_volt = volt
         #graph point here
-    for volt in xrange(last_volt, start_volt, step_volt*-2):
-        keithley.set_output(volt)
-        time.sleep(delay_time/2.0)
-    
-    keithley.enable_output(False)
-    
-    for i in xrange(0,len(frequencies), 1):
-        print "Frequency: " +str(frequencies[i]) 
-        print capacitance[i::len(frequencies)]
         
-    return capacitance
+    while last_volt > 0:
+        
+        if last_volt<=5:
+            keithley.set_output(0)
+            last_volt = 0
+        else:
+            keithley.set_output(last_volt-5)
+            last_volt -= 5
+            
+        time.sleep(0.5)
+    
+    if test is True:
+        pass
+    else:
+        keithley.enable_output(False)
+    
+    
+    return (voltages, formatted_cap, parameter2)
 
 def spa_iv(sourceparam, meas_param):
     (start_volt, end_volt, step_volt, delay_time, compliance) = sourceparam
@@ -247,7 +294,7 @@ class GuiPart:
         self.cv_compliance_scale = StringVar()
         self.cv_source_choice = StringVar()
         self.cv_impedance_scale = StringVar()
-        
+        self.cv_amplitude = StringVar()
         self.cv_frequencies = StringVar()
         self.cv_integration = StringVar()
         self.started = False
@@ -335,6 +382,7 @@ class GuiPart:
         s.pack(side=LEFT)
         s.grid(row=4, column=3)
         
+        self.recipients.set("adapbot@gmail.com")
         s = Label(f1, text="Email data to:")
         s.pack(side=LEFT)
         s.grid(row=5, column=1)
@@ -342,10 +390,6 @@ class GuiPart:
         s = Entry(f1, textvariable = self.recipients)
         s.pack(side=LEFT)
         s.grid(row=5, column=2)
-        
-        s = Label(f1, text="Separate with ','")
-        s.pack(side=LEFT)
-        s.grid(row=5, column=3)
     
         source_choices = {'Keithley 2400', 'Keithley 2657a'}
         self.source_choice.set('Keithley 2657a')
@@ -384,85 +428,74 @@ class GuiPart:
         s.grid(row=4, column=7)
         
         """
-        CV GUI
+        /***********************************************************
+         * CV GUI
+         **********************************************************/
         """
+        
+        self.cv_start_volt.set("0.0")
         s = Label(f2, text="Start Volt")
         s.pack(side=LEFT)
         s.grid(row=0, column=1)
-        
         s = Entry(f2, textvariable = self.cv_start_volt)
         s.pack(side=LEFT)
-        s.grid(row=0, column=2)
-        
+        s.grid(row=0, column=2)       
         s = Label(f2, text="V")
         s.pack(side=LEFT)
         s.grid(row=0, column=3)
         
+        self.cv_end_volt.set("40.0")
         s = Label(f2, text="End Volt")
         s.pack(side=LEFT)
         s.grid(row=1, column=1)
-        
         s = Entry(f2, textvariable = self.cv_end_volt)
         s.pack(side=LEFT)
         s.grid(row=1, column=2)
-        
         s = Label(f2, text="V")
         s.pack(side=LEFT)
         s.grid(row=1, column=3)
         
+        self.cv_step_volt.set("1.0")
         s = Label(f2, text="Step Volt")
         s.pack(side=LEFT)
         s.grid(row=2, column=1)
-        
         s = Entry(f2, textvariable = self.cv_step_volt)
         s.pack(side=LEFT)
         s.grid(row=2, column=2)
-        
         s = Label(f2, text="V")
         s.pack(side=LEFT)
         s.grid(row=2, column=3)
         
+        self.cv_hold_time.set("1.0")
         s = Label(f2, text="Hold Time")
         s.pack(side=LEFT)
         s.grid(row=3, column=1)
-        
         s = Entry(f2, textvariable = self.cv_hold_time)
         s.pack(side=LEFT)
         s.grid(row=3, column=2)
-        
         s = Label(f2, text="s")
         s.pack(side=LEFT)
         s.grid(row=3, column=3)
         
+        self.cv_compliance.set("1.0")
         s = Label(f2, text="Compliance")
         s.pack(side=LEFT)
         s.grid(row=4, column=1)
-        
         s = Entry(f2, textvariable = self.cv_compliance)
         s.pack(side=LEFT)
         s.grid(row=4, column=2)
-        
-        function_choices = {"CPD", "CPQ",  "CPG",   "CPRP",  "CSD",  "CSQ", "CSRS",   "LPD",
-                 "LPQ", "LPG", "LPRP", "LPRD", "LSD", "LSQ", "LSRS", "LSRD",
-                 "RX", "ZTD", "ZTR", "GB",   "YTD", "YTR", "VDID"
-                 }
-
         self.cv_compliance_scale.set('uA')
         s = OptionMenu(f2, self.cv_compliance_scale, *compliance_choices)
         s.pack(side=LEFT)
         s.grid(row=4, column=3)
         
+        self.cv_recipients.set("adapbot@gmail.com")
         s = Label(f2, text="Email data to:")
         s.pack(side=LEFT)
         s.grid(row=5, column=1)
-        
         s = Entry(f2, textvariable = self.cv_recipients)
         s.pack(side=LEFT)
         s.grid(row=5, column=2)
-        
-        s = Label(f2, text="Separate with ','")
-        s.pack(side=LEFT)
-        s.grid(row=5, column=3)
         
         s = Label(f2, text="Agilent LCRMeter Parameters", relief=RAISED)
         s.pack(side=LEFT)
@@ -472,7 +505,9 @@ class GuiPart:
         s = Label(f2, text="Function")
         s.pack(side=LEFT)
         s.grid(row=7, column=1)
-        
+        function_choices = {"CPD", "CPQ",  "CPG",   "CPRP",  "CSD",  "CSQ", "CSRS",   "LPD",
+                 "LPQ", "LPG", "LPRP", "LPRD", "LSD", "LSQ", "LSRS", "LSRD",
+                 "RX", "ZTD", "ZTR", "GB",   "YTD", "YTR", "VDID"}
         self.cv_function_choice = StringVar()
         self.cv_function_choice.set('CPD')
         s = OptionMenu(f2, self.cv_function_choice, *function_choices)
@@ -483,14 +518,43 @@ class GuiPart:
         s = Label(f2, text="Impedance")
         s.pack(side=LEFT)
         s.grid(row=8, column=1)
-        
         s = Entry(f2, textvariable=self.cv_impedance )
         s.pack(side=LEFT)
         s.grid(row=8, column=2)
-        
         s = Label(f2, text="Ω")
         s.pack(side=LEFT)
         s.grid(row=8, column=3)
+        
+        self.cv_frequencies.set("100, 200, 1000, 2000")
+        s = Label(f2, text="Frequencies")
+        s.pack(side=LEFT)
+        s.grid(row=9, column=1)
+        s = Entry(f2, textvariable=self.cv_frequencies )
+        s.pack(side=LEFT)
+        s.grid(row=9, column=2)
+        s = Label(f2, text="Hz")
+        s.pack(side=LEFT)
+        s.grid(row=9, column=3)
+        
+        self.cv_amplitude.set("5.0")
+        s = Label(f2, text="Signal Amplitude")
+        s.pack(side=LEFT)
+        s.grid(row=10, column=1)
+        s = Entry(f2, textvariable=self.cv_amplitude )
+        s.pack(side=LEFT)
+        s.grid(row=10, column=2)
+        s = Label(f2, text="V")
+        s.pack(side=LEFT)
+        s.grid(row=10, column=3)
+        
+        cv_int_choices = {"Short", "Medium", "Long"}
+        s = Label(f2, text="Integration time")
+        s.pack(side=LEFT)
+        s.grid(row=11, column=1)
+        self.cv_integration.set("Short")
+        s = OptionMenu(f2, self.cv_integration, *cv_int_choices)
+        s.pack(side=LEFT)
+        s.grid(row=11, column=2)
     
         self.cv_source_choice.set('Keithley 2657a')
         s = OptionMenu(f2, self.cv_source_choice, *source_choices)
@@ -499,16 +563,16 @@ class GuiPart:
         
         s = Label(f2, text="Progress:")
         s.pack(side=LEFT)
-        s.grid(row=11, column=1)
+        s.grid(row=13, column=1)
         
         self.cv_pb = ttk.Progressbar(f2, orient="horizontal", length=200, mode="determinate")
         self.cv_pb.pack(side=LEFT)
-        self.cv_pb.grid(row=11, column= 2, columnspan=5)
+        self.cv_pb.grid(row=13, column= 2, columnspan=5)
         self.cv_pb["maximum"] = 100
         self.cv_pb["value"] = 0
         
         self.cv_canvas = FigureCanvasTkAgg(self.cv_f, master=f2)
-        self.cv_canvas.get_tk_widget().grid(row=10, columnspan=10)
+        self.cv_canvas.get_tk_widget().grid(row=12, column=0, columnspan=10)
         self.cv_a.set_title("CV")
         self.cv_a.set_xlabel("Voltage")
         self.cv_a.set_ylabel("Capacitance")
@@ -529,19 +593,47 @@ class GuiPart:
         while self.outputdata.qsize():
             try:
                 (data, percent) = self.outputdata.get(0)
-                print "Percent done:" +str(percent)
-                self.pb["value"] = percent
-                self.pb.update()
-                (voltages, currents) = data
-                line, = self.a.plot(voltages, currents)
-                line.set_antialiased(True)
-                line.set_linestyle('solid')
-                line.set_color('r')
-                self.canvas.draw()
-
+                
+                if self.type is 0:
+                    print "Percent done:" +str(percent)
+                    self.pb["value"] = percent
+                    self.pb.update()
+                    (voltages, currents) = data
+                    line, = self.a.plot(voltages, currents)
+                    line.set_antialiased(True)
+                    line.set_linestyle('solid')
+                    line.set_color('r')
+                    self.canvas.draw
+                elif self.type is 1:
+                    (voltages, caps) = data
+                    print "Percent done:" +str(percent)
+                    self.cv_pb["value"] = percent
+                    self.cv_pb.update()
+                    #print "Caps:+++++++"
+                    #print caps
+                    #print "============="
+                    colors = {0:'b', 1:'g', 2:'r', 3:'c', 4:'m', 5:'k'}
+                    i = 0
+                    for c in caps:
+                        """
+                        print "VOLTS++++++"
+                        print voltages
+                        print "ENDVOLTS===="
+                        #(a, b) = c[0]
+                        print "CAPSENSE+++++"
+                        print c
+                        
+                        print "ENDCAP======="
+                        """
+                        line, = self.cv_a.plot(voltages, c)
+                        line.set_antialiased(True)
+                        line.set_color(colors.get(i))
+                        i += 1
+                        self.cv_canvas.draw()
+                
             except Queue.Empty:
                 pass
-    
+                
     def quit(self):
         import sys
         sys.exit(1)
@@ -551,12 +643,21 @@ class GuiPart:
         print "preparing iv values"
         input_params = ((self.compliance.get(), self.compliance_scale.get(), self.start_volt.get(), self.end_volt.get(), self.step_volt.get(), self.hold_time.get(), self.source_choice.get()), 0)
         self.inputdata.put(input_params)   
+        self.f.clf()        
+        self.a = self.f.add_subplot(111)
+        self.type = 0
+        
         
     def cv_prepare_values(self):
         print "preparing cv values"
-        input_params = ((self.cv_compliance.get(), self.cv_compliance_scale.get(), self.cv_start_volt.get(), self.cv_end_volt.get(), self.cv_step_volt.get(), self.cv_hold_time.get(), self.cv_source_choice.get()), 1)
+        input_params = ((self.cv_compliance.get(), self.cv_compliance_scale.get(), self.cv_start_volt.get(), self.cv_end_volt.get(), self.cv_step_volt.get(), self.cv_hold_time.get(), self.cv_source_choice.get(),
+                         map(lambda x: x.strip(), self.cv_frequencies.get().split(",")), self.cv_function_choice.get(), self.cv_amplitude.get(), self.cv_impedance.get(), self.cv_integration.get()
+                         ), 1)
+        print input_params
         self.inputdata.put(input_params)  
-         
+        self.cv_f.clf()
+        self.cv_a = self.cv_f.add_subplot(111)
+        self.type = 1
         
 def getvalues(input_params, dataout):
     print input_params
@@ -579,20 +680,63 @@ def getvalues(input_params, dataout):
     data_out = xlsxwriter.Workbook(filename+".xlsx")
     path = filename+".xlsx"
     worksheet = data_out.add_worksheet()
-    (v, i) = data
+    (v, i, c, r) = data
     values = []
+    
+    print "V+++++"
+    print v
+    print "V=====\n"
+    print "I+++++"
+    print i
+    print "I=====\n"
+    print "C+++++"
+    print c
+    print "C=====\n"
+    print "R+++++"
+    print r
+    print "R=====\n"
+    
     for x in xrange(0,len(v), 1):
-        values.append((v[x], i[x]))
-    row=0
+        for f in xrange(0, len(i), 1):
+            values.append((v[x], i[f][x]))
+    
+    row=9
     col=0
     chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
     
-    for volt, cur in values:
+    for volt in values:
         worksheet.write(row, col, volt)
-        worksheet.write(row, col+1, cur)
         row+=1
+    col +=1
+    last_col = col
+    row=9
+    for frequency in i:
+        row = 9
+        for current in frequency:
+            worksheet.write(row, col, current)
+            row+=1
+        col+=3
+        
+    col = last_col+1
+    last_col = col
+    for frequency in c:
+        row=9
+        for cap in frequency:
+            worksheet.write(row, col, cap)
+            row+=1
+        col+=3
+        
+    col = last_col+1
+    last_col = col
+    for frequency in r:
+        row=9
+        for res in frequency:
+            worksheet.write(row, col, res)
+            row+=1
+        col+=3
+        
     
-    chart.add_series({'categories': '=Sheet1!$A$1:$A$'+str(row), 'values': '=Sheet1!$B$1:$B$'+str(row)})
+    chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$B$10:$B$'+str(row)})
     chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
     chart.set_y_axis({'name':'Current [A]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
     chart.set_legend({'none':True})
@@ -604,38 +748,47 @@ def getvalues(input_params, dataout):
         sentTo = []
         for mailee in mails:
             sentTo.append(mailee.strip())
-                
+    
         print sentTo
         sendMail(path, sentTo)
     except:
         pass
-        
+    
     print data
 
 def cv_getvalues(input_params, dataout):
     print input_params
     filename = tkFileDialog.asksaveasfilename(initialdir = "/",title = "Save data",filetypes = (("Microsoft Excel file","*.xlsx"),("all files","*.*")))
-    (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice) = input_params
+    (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, frequencies, function, amplitude, impedance, integration) = input_params
     
     try:
         comp = float(float(compliance)*({'mA':1e-3, 'uA':1e-6, 'nA':1e-9}.get(compliance_scale, 1e-6)))
-        source_params = (int(float(start_volt)), int(float(end_volt)), int(float(step_volt)),
-                             float(hold_time), comp)
-        print source_params
+        params = (int(float(start_volt)), int(float(end_volt)), int(float(step_volt)),
+                             float(hold_time), comp, frequencies, float(amplitude), function, int(impedance), {"Short":0, "Medium":1, "Long":2}.get(integration))
+        print params
     except ValueError:
         print "Please fill in all fields!"
     data = ()
-    if source_params is None:
+    if params is None:
         pass
     else:
-        data = GetIV(source_params, 1, dataout)
-            
+        data = GetCV(params, {"Keithley 2657a":1, "Keithley 2400":0}.get(source_choice), dataout)
+    
     data_out = xlsxwriter.Workbook(filename+".xlsx")
     path = filename+".xlsx"
     worksheet = data_out.add_worksheet()
     (v, i) = data
     values = []
+    print "\nDATA++++++"
+    print data
+    print "DATA======\n"
     for x in xrange(0,len(v), 1):
+        print "V++++++++"
+        print v[x]
+        print "V--------\n"
+        print "C++++++++"
+        print i[x]
+        print "C========\n"
         values.append((v[x], i[x]))
     row=0
     col=0
@@ -646,9 +799,9 @@ def cv_getvalues(input_params, dataout):
         worksheet.write(row, col+1, cur)
         row+=1
     
-    chart.add_series({'categories': '=Sheet1!$A$1:$A$'+str(row), 'values': '=Sheet1!$B$1:$B$'+str(row)})
+    chart.add_series({'categories': '=Sheet1!$A$1:$A$'+str(row), 'values': '=Sheet1!$B$1:$B$'+str(row), 'marker': {'type': 'star'}})
     chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
-    chart.set_y_axis({'name':'Current [A]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+    chart.set_y_axis({'name':'Capacitance [F]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
     chart.set_legend({'none':True})
     worksheet.insert_chart('D2', chart)
     data_out.close()
@@ -665,8 +818,8 @@ def cv_getvalues(input_params, dataout):
         pass
         
     print data
-
-
+    
+    
 class ThreadedProgram:
     
     def __init__(self, master):
