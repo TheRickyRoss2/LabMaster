@@ -3,7 +3,7 @@ import time
 
 class Agilent4156(object):
     
-    def __init__(self, gpib=6):
+    def __init__(self, gpib=2):
         """Set up gpib controller for device"""
         
         assert(gpib >= 0), "Please enter a valid GPIB address"
@@ -30,7 +30,7 @@ class Agilent4156(object):
         self.inst.write(mode)
         
     def configure_sampling_measurement(self, _mode = 0, _filter = False, auto_time=True, 
-                                       hold_time=0, interval=4e-3, total_time=0.4,no_samples=50):
+                                       hold_time=0, interval=4e-3, total_time=0.4,no_samples=5):
         mode = {0:"LIN", 1:"L10", 2:"L25", 3:"L50", 4:"THIN"}.get(_mode, "LIN")
         self.inst.write(":PAGE:MEAS:SAMP:MODE " +mode+";")
         self.inst.write(":PAGE:MEAS:SAMP:HTIM "+str(hold_time)+";")
@@ -74,19 +74,22 @@ class Agilent4156(object):
         
     def read_trace_data(self, var="I1"):
         _data = self.inst.query(":FORM:BORD NORM;DATA ASC;:DATA? \'"+var+"\';")
-        print _data
-        data = map(lambda x: float(x), _data.split(","))
-        return sum(data)/len(data)
-    
+        #print _data
+        try:
+            data = map(lambda x: float(x), _data.split(","))
+            return sum(data)/len(data)
+        except:
+            pass
     def configure_vmu(self, discharge=True, _vmu = 1, _mode =0, name="VMU1"):
         vmu = {1:"VMU1", 2:"VMU2"}.get(_vmu, "VMU1")
         mode = {0:"V", 1:"DVOLT"}.get(_mode, "V")
-        self.inst.write(":PAGE:CHAN:"+vmu+":MODE "+mode)
+        self.inst.write(":PAGE:CHAN:"+vmu+":MODE "+mode+";s")
         if discharge is True:
-            self.inst.write(":PAGE:CHAN:"+vmu+":DCH ON")
+            self.inst.write(":PAGE:CHAN:"+vmu+":DCH ON;")
         else:
-            self.inst.write(":PAGE:CHAN:"+vmu+":DCH OFF")
+            self.inst.write(":PAGE:CHAN:"+vmu+":DCH OFF;")
         self.inst.write(":PAGE:CHAN:"+vmu+":VNAM \'"+name+"\';")
+        print "vmuset good"
         
         
     def configure_channel(self, _chan=0, _func=3, _mode = 4, sres=0, standby=False):
