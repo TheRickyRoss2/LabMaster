@@ -112,10 +112,8 @@ def GetCV(params, sourcemeter, dataout):
     
     capacitance = []
     voltages = []
-    parameter2 = []
     p2=  []
     c = []
-    currents = []
     
     keithley = 0
     
@@ -128,7 +126,7 @@ def GetCV(params, sourcemeter, dataout):
             keithley = Keithley2657a()
         keithley.init()
         keithley.configure_measurement()
-        
+    
     last_volt = 0
     
     (start_volt, end_volt, step_volt, delay_time, compliance,
@@ -149,7 +147,7 @@ def GetCV(params, sourcemeter, dataout):
         step_volt = -1*step_volt
     
     for volt in xrange(start_volt, end_volt, step_volt):
-        
+    
         if test is True:
             pass
         else:
@@ -185,6 +183,8 @@ def GetCV(params, sourcemeter, dataout):
         
         voltages.append(volt)
         formatted_cap = []
+        parameter2 = []
+        currents = []
         for i in xrange(0,len(frequencies), 1):
             print "Frequency: " +str(frequencies[i]) 
             print capacitance[i::len(frequencies)]
@@ -213,7 +213,7 @@ def GetCV(params, sourcemeter, dataout):
         keithley.enable_output(False)
     
     
-    return (voltages, formatted_cap, parameter2)
+    return (voltages, currents, formatted_cap, parameter2)
 
 def spa_iv(sourceparam, meas_param):
     (start_volt, end_volt, step_volt, delay_time, compliance) = sourceparam
@@ -305,10 +305,10 @@ class GuiPart:
         self.hold_time.set("1.0")
         self.compliance.set("1.0")
         
-        self.f = plt.figure(figsize=(4, 4), dpi=75)
+        self.f = plt.figure(figsize=(3.5, 3.5), dpi=80)
         self.a = self.f.add_subplot(111)
         
-        self.cv_f = plt.figure(figsize=(4, 4), dpi=75)
+        self.cv_f = plt.figure(figsize=(3.5, 3.5), dpi=80)
         self.cv_a = self.cv_f.add_subplot(111)
 
         n = ttk.Notebook(root)
@@ -654,11 +654,12 @@ class GuiPart:
                          map(lambda x: x.strip(), self.cv_frequencies.get().split(",")), self.cv_function_choice.get(), self.cv_amplitude.get(), self.cv_impedance.get(), self.cv_integration.get()
                          ), 1)
         print input_params
+        self.freqs = self.frequencies.get().split(",")
         self.inputdata.put(input_params)  
         self.cv_f.clf()
         self.cv_a = self.cv_f.add_subplot(111)
         self.type = 1
-        
+    
 def getvalues(input_params, dataout):
     print input_params
     filename = tkFileDialog.asksaveasfilename(initialdir = "/",title = "Save data",filetypes = (("Microsoft Excel file","*.xlsx"),("all files","*.*")))
@@ -680,63 +681,31 @@ def getvalues(input_params, dataout):
     data_out = xlsxwriter.Workbook(filename+".xlsx")
     path = filename+".xlsx"
     worksheet = data_out.add_worksheet()
-    (v, i, c, r) = data
+    
+    (v, i) = data
     values = []
-    
-    print "V+++++"
-    print v
-    print "V=====\n"
-    print "I+++++"
-    print i
-    print "I=====\n"
-    print "C+++++"
-    print c
-    print "C=====\n"
-    print "R+++++"
-    print r
-    print "R=====\n"
-    
+    print "\nDATA++++++"
+    print data
+    print "DATA======\n"
     for x in xrange(0,len(v), 1):
-        for f in xrange(0, len(i), 1):
-            values.append((v[x], i[f][x]))
-    
-    row=9
+        print "V++++++++"
+        print v[x]
+        print "V--------\n"
+        print "I++++++++"
+        print i[x]
+        print "I========\n"
+        values.append((v[x], i[x]))
+    row=0
     col=0
+    
     chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
     
-    for volt in values:
+    for volt, cur in values:
         worksheet.write(row, col, volt)
+        worksheet.write(row, col+1, cur)
         row+=1
-    col +=1
-    last_col = col
-    row=9
-    for frequency in i:
-        row = 9
-        for current in frequency:
-            worksheet.write(row, col, current)
-            row+=1
-        col+=3
-        
-    col = last_col+1
-    last_col = col
-    for frequency in c:
-        row=9
-        for cap in frequency:
-            worksheet.write(row, col, cap)
-            row+=1
-        col+=3
-        
-    col = last_col+1
-    last_col = col
-    for frequency in r:
-        row=9
-        for res in frequency:
-            worksheet.write(row, col, res)
-            row+=1
-        col+=3
-        
     
-    chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$B$10:$B$'+str(row)})
+    chart.add_series({'categories': '=Sheet1!$A$1:$A$'+str(row), 'values': '=Sheet1!$B$1:$B$'+str(row)})
     chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
     chart.set_y_axis({'name':'Current [A]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
     chart.set_legend({'none':True})
@@ -754,8 +723,7 @@ def getvalues(input_params, dataout):
     except:
         pass
     
-    print data
-
+    print data  
 def cv_getvalues(input_params, dataout):
     print input_params
     filename = tkFileDialog.asksaveasfilename(initialdir = "/",title = "Save data",filetypes = (("Microsoft Excel file","*.xlsx"),("all files","*.*")))
@@ -777,33 +745,149 @@ def cv_getvalues(input_params, dataout):
     data_out = xlsxwriter.Workbook(filename+".xlsx")
     path = filename+".xlsx"
     worksheet = data_out.add_worksheet()
-    (v, i) = data
-    values = []
-    print "\nDATA++++++"
-    print data
-    print "DATA======\n"
-    for x in xrange(0,len(v), 1):
-        print "V++++++++"
-        print v[x]
-        print "V--------\n"
-        print "C++++++++"
-        print i[x]
-        print "C========\n"
-        values.append((v[x], i[x]))
-    row=0
+    
+    
+    (v, i, c, r) = data
+    
+    print "V+++++"
+    print v
+    print "V=====\n"
+    print "I+++++"
+    print i
+    print "I=====\n"
+    print "C+++++"
+    print c
+    print "C=====\n"
+    print "R+++++"
+    print r
+    print "R=====\n"
+    
+    row=9
     col=0
     chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
-    
-    for volt, cur in values:
+    worksheet.write(8, 0, "V")
+    for volt in v:
         worksheet.write(row, col, volt)
-        worksheet.write(row, col+1, cur)
         row+=1
     
-    chart.add_series({'categories': '=Sheet1!$A$1:$A$'+str(row), 'values': '=Sheet1!$B$1:$B$'+str(row), 'marker': {'type': 'star'}})
-    chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
-    chart.set_y_axis({'name':'Capacitance [F]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
-    chart.set_legend({'none':True})
-    worksheet.insert_chart('D2', chart)
+    col +=1
+    last_col = col
+    row=9
+    for frequency in i:
+        worksheet.write(row-1, col, "F="+frequencies[0]+"Hz")
+        row = 9
+        for current in frequency:
+            worksheet.write(row, col, current)
+            row+=1
+        col+=3
+        
+    col = last_col+1
+    last_col = col
+    for frequency in c:
+        row=9
+        for cap in frequency:
+            worksheet.write(row, col, cap)
+            row+=1
+        col+=3
+    
+    col = last_col+1
+    last_col = col
+    
+    fs=0
+    for frequency in r:
+        fs +=1
+        row=9
+        for res in frequency:
+            worksheet.write(row, col, res)
+            row+=1
+        col+=3
+    
+    if fs >= 1:
+        chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$B$10:$B$'+str(row), 'marker': {'type': 'star'}})
+        chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_y_axis({'name':'Current [A]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_legend({'none':True})
+        worksheet.insert_chart('D'+str(row), chart)
+
+        chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$C$10:$C$'+str(row), 'marker': {'type': 'star'}})
+        chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_y_axis({'name':'Capacitance [F]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_legend({'none':True})
+        worksheet.insert_chart('D'+str(row+25), chart)
+        
+        chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$D$10:$D$'+str(row), 'marker': {'type': 'star'}})
+        chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_y_axis({'name':'Resistance [R]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_legend({'none':True})
+        worksheet.insert_chart('D'+str(row+50), chart)
+        
+    if fs >= 2:
+        chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$E$10:$E$'+str(row), 'marker': {'type': 'star'}})
+        chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_y_axis({'name':'Resistance [R]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_legend({'none':True})
+        worksheet.insert_chart('L'+str(row), chart)
+        chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$F$10:$F$'+str(row), 'marker': {'type': 'star'}})
+        chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_y_axis({'name':'Resistance [R]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_legend({'none':True})
+        worksheet.insert_chart('L'+str(row+25), chart)
+        chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$G$10:$G$'+str(row), 'marker': {'type': 'star'}})
+        chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_y_axis({'name':'Resistance [R]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_legend({'none':True})
+        worksheet.insert_chart('L'+str(row+50), chart)
+        
+    if fs >= 3:
+        chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$H$10:$H$'+str(row), 'marker': {'type': 'star'}})
+        chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_y_axis({'name':'Resistance [R]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_legend({'none':True})
+        worksheet.insert_chart('T'+str(row), chart)
+        
+        chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$I$10:$I$'+str(row), 'marker': {'type': 'star'}})
+        chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_y_axis({'name':'Resistance [R]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_legend({'none':True})
+        worksheet.insert_chart('T'+str(row+25), chart)
+        
+        chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$J$10:$J$'+str(row), 'marker': {'type': 'star'}})
+        chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_y_axis({'name':'Resistance [R]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_legend({'none':True})
+        worksheet.insert_chart('T'+str(row+50), chart)
+        
+    if fs >= 4:
+        chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$K$10:$K$'+str(row), 'marker': {'type': 'star'}})
+        chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_y_axis({'name':'Resistance [R]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_legend({'none':True})
+        worksheet.insert_chart('AB'+str(row), chart)
+        
+        chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$L$10:$L$'+str(row), 'marker': {'type': 'star'}})
+        chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_y_axis({'name':'Resistance [R]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_legend({'none':True})
+        worksheet.insert_chart('AB'+str(row+25), chart)
+        
+        chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$M$10:$M$'+str(row), 'marker': {'type': 'star'}})
+        chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_y_axis({'name':'Resistance [R]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+        chart.set_legend({'none':True})
+        worksheet.insert_chart('AB'+str(row+50), chart)
+        
     data_out.close()
     
     try:
@@ -861,7 +945,7 @@ class ThreadedProgram:
         
     def endapp(self):
         self.running = 0
-        
+    
 if __name__=="__main__":
     
     root = Tk()
