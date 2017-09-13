@@ -44,7 +44,7 @@ def GetIV(sourceparam, sourcemeter, dataout):
     else:
         keithley = Keithley2657a()
     
-    if test is True:
+    if test:
         pass
     else:
         keithley.init()
@@ -52,21 +52,35 @@ def GetIV(sourceparam, sourcemeter, dataout):
     last_volt = 0
     badCount = 0
     
+    if step_volt < 1.0:
+        start_volt *=1000
+        end_volt *=1000
+        step_volt*=1000
+        scaled = True
+        
     if start_volt>end_volt:
         step_volt = -1*step_volt
     
+    scaled = False
     print "looping now"
-    for volt in xrange(start_volt, end_volt, step_volt):
+
+        
+    for volt in xrange(start_volt, end_volt, int(step_volt)):
+        start_time = time.time()
+
         curr = 0
-        if test is True:
+        if test:
             pass
         else:
-            keithley.set_output(volt)
+            if scaled:
+                keithley.set_output(volt/1000)
+            else:
+                keithley.set_output(volt)
             
         time.sleep(delay_time)
         
-        if test is True:
-            curr = (volt+randint(0, 10))*1e-10
+        if test:
+            curr = volt*1e-9
         else:
             curr = keithley.get_current()
         #curr = volt
@@ -81,19 +95,20 @@ def GetIV(sourceparam, sourcemeter, dataout):
             break
         
         currents.append(curr)
-        voltages.append(volt)
-        """
-        #TODO Live graphics
-        Y = currents
-        graph.set_ydata(Y)
-        graph.draw()
-        """
+        if scaled:
+            voltages.append(volt/1000.0)
+        else:
+            voltages.append(volt)
+       
         last_volt = volt
-        dataout.put(((voltages, currents), 100*abs((volt+step_volt)/float(end_volt))))
+        
+        time_remain = (time.time()-start_time)*(abs((end_volt-volt)/step_volt))
+        
+        dataout.put( ((voltages, currents), 100*abs((volt+step_volt)/float(end_volt)), time_remain) )
         
         
     while abs(last_volt)>5:
-        if test is True:
+        if test:
             pass
         else:
             keithley.set_output(last_volt)
@@ -104,7 +119,7 @@ def GetIV(sourceparam, sourcemeter, dataout):
         else:
             last_volt -=5
         
-    if test is True:
+    if test:
         pass
     else:
         keithley.set_output(0)
@@ -117,10 +132,9 @@ def GetCV(params, sourcemeter, dataout):
     voltages = []
     p2=  []
     c = []
-    
     keithley = 0
     
-    if test is True:
+    if test:
         pass
     else:
         if sourcemeter is 0:
@@ -135,7 +149,7 @@ def GetCV(params, sourcemeter, dataout):
     (start_volt, end_volt, step_volt, delay_time, compliance,
      frequencies, level, function, impedance, int_time) = params
     
-    if test is True:
+    if test:
         pass
     else:
         agilent = AgilentE4980a()
@@ -144,21 +158,32 @@ def GetCV(params, sourcemeter, dataout):
         agilent.configure_aperture(int_time)
     badCount = 0
     
+    if step_volt < 1.0:
+        start_volt *=1000
+        end_volt *=1000
+        step_volt*=1000
+        scaled = True
+    
     if start_volt>end_volt:
         step_volt = -1*step_volt
     
+    start_time = time.time()
     for volt in xrange(start_volt, end_volt, step_volt):
     
-        if test is True:
+        start_time = time.time()
+        if test:
             pass
         else:
-            keithley.set_output(volt)
+            if scaled:
+                keithley.set_output(volt/1000.0)
+            else:
+                keithley.set_output(volt)
             
         curr = 0
         for f in frequencies:
             time.sleep(delay_time)
 
-            if test is True:
+            if test:
                 capacitance.append((volt*float(f)))
                 curr = volt*1e-10
                 c.append(curr)
@@ -181,7 +206,12 @@ def GetCV(params, sourcemeter, dataout):
             print "Compliance reached"
             break
         
-        voltages.append(volt)
+        time_remain = (time.time()-start_time)*(abs((end_volt-volt)/step_volt))
+        
+        if scaled:
+            voltages.append(volt/1000.0)
+        else:
+            voltages.append(volt)
         formatted_cap = []
         parameter2 = []
         currents = []
@@ -189,7 +219,9 @@ def GetCV(params, sourcemeter, dataout):
             formatted_cap.append(capacitance[i::len(frequencies)])
             parameter2.append(p2[i::len(frequencies)])
             currents.append(c[i::len(frequencies)])
-        dataout.put(((voltages, formatted_cap), 100*abs((volt+step_volt)/float(end_volt))))
+        dataout.put(((voltages, formatted_cap), 100*abs((volt+step_volt)/float(end_volt)), time_remain))
+        
+        time_remain = time.time()+(time.time()-start_time)*(abs((volt-end_volt)/end_volt))
         
         last_volt = volt
         #graph point here
@@ -204,7 +236,7 @@ def GetCV(params, sourcemeter, dataout):
             
         time.sleep(0.5)
     
-    if test is True:
+    if test:
         pass
     else:
         keithley.enable_output(False)
@@ -304,21 +336,25 @@ class GuiPart:
         self.hold_time.set("1.0")
         self.compliance.set("1.0")
         
-        self.f = plt.figure(figsize=(6, 4), dpi=50)
+        
+        self.f = plt.figure(figsize=(8, 6), dpi=60)
         self.a = self.f.add_subplot(111)
         
-        self.cv_f = plt.figure(figsize=(6, 4), dpi=50)
+        self.cv_f = plt.figure(figsize=(8, 6), dpi=60)
         self.cv_a = self.cv_f.add_subplot(111)
         
-        n = ttk.Notebook(root)
-        n.grid(row=1, column=0, columnspan=60, rowspan=60, sticky='NESW')
+        n = ttk.Notebook(root, width=800)
+        n.grid(row=0, column=0, columnspan=100, rowspan=100, sticky='NESW')
         f1 = ttk.Frame(n)
         f2 = ttk.Frame(n)
         f3 = ttk.Frame(n)
         n.add(f1, text='IV')
         n.add(f2, text='CV')
-        n.add(f3, text='SPA IV')
+        n.add(f3, text='SPA')
         
+        self.f1 = f1
+        self.f2 = f2
+        self.f3 = f3
         if "Windows" in platform.platform():
             self.filename.set("iv_data.xlsx")
             s = Label(f1, text="File name:")
@@ -376,6 +412,13 @@ class GuiPart:
         
         s = Label(f1, text="Progress:")
         s.grid(row=11, column=1)
+       
+        s = Label(f1, text="Est finish at:")
+        s.grid(row=12, column=1)
+        
+        timetext = str(time.asctime(time.localtime(time.time())))
+        self.timer = Label(f1, text=timetext)
+        self.timer.grid(row=12, column=2)
         
         self.pb = ttk.Progressbar(f1, orient="horizontal", length=200, mode="determinate")
         self.pb.grid(row=11, column= 2, columnspan=5)
@@ -517,6 +560,12 @@ class GuiPart:
         self.cv_pb["maximum"] = 100
         self.cv_pb["value"] = 0
         
+        s = Label(f2, text="Est finish at:")
+        s.grid(row=15, column=1)
+        cv_timetext = str(time.asctime(time.localtime(time.time())))
+        self.timer = Label(self.f2, text=cv_timetext)
+        self.timer.grid(row=15, column=2)
+        
         self.cv_canvas = FigureCanvasTkAgg(self.cv_f, master=f2)
         self.cv_canvas.get_tk_widget().grid(row=13, column=0, columnspan=10)
         self.cv_a.set_title("CV")
@@ -536,7 +585,7 @@ class GuiPart:
     def update(self):
         while self.outputdata.qsize():
             try:
-                (data, percent) = self.outputdata.get(0)
+                (data, percent, timeremain) = self.outputdata.get(0)
                 
                 if self.type is 0:
                     print "Percent done:" +str(percent)
@@ -550,6 +599,11 @@ class GuiPart:
                     self.a.set_xlabel("Voltage")
                     self.a.set_ylabel("Current")
                     self.canvas.draw()
+
+                    timetext = str(time.asctime(time.localtime(time.time()+timeremain)))
+                    self.timer = Label(self.f1, text=timetext)
+                    self.timer.grid(row=12, column=2)
+                    
                     
                 elif self.type is 1:
                     (voltages, caps) = data
@@ -573,7 +627,7 @@ class GuiPart:
                         print "ENDCAP======="
                         """
                         
-                        if self.first is True:
+                        if self.first:
                             line, = self.cv_a.plot(voltages, c, label=(self.cv_frequencies.get().split(",")[i]+"Hz"))
                             self.cv_a.legend()
                         else:
@@ -585,6 +639,11 @@ class GuiPart:
                         self.a.set_xlabel("Voltage")
                         self.a.set_ylabel("Capacitance")
                         self.cv_canvas.draw()
+                        
+                    timetext = str(time.asctime(time.localtime(time.time()+timeremain)))
+                    self.timer = Label(self.f2, text=timetext)
+                    self.timer.grid(row=15, column=2)
+                    
                 self.first = False
             except Queue.Empty:
                 pass
@@ -624,7 +683,7 @@ def getvalues(input_params, dataout):
     
     try:
         comp = float(float(compliance)*({'mA':1e-3, 'uA':1e-6, 'nA':1e-9}.get(compliance_scale, 1e-6)))
-        source_params = (int(float(start_volt)), int(float(end_volt)), int(float(step_volt)),
+        source_params = (int(float(start_volt)), int(float(end_volt)), (float(step_volt)),
                              float(hold_time), comp)
     except ValueError:
         print "Please fill in all fields!"
@@ -897,9 +956,8 @@ class ThreadedProgram:
         self.running = 0
     
 if __name__=="__main__":
-    
     root = Tk()
-    root.geometry('610x800')
+    root.geometry('800x800')
     root.title('Adap')
     client = ThreadedProgram(root)
     root.mainloop() 
