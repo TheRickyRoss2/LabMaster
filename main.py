@@ -889,7 +889,8 @@ class ThreadedProgram:
                 elif type is 1:
                     cv_getvalues(params, self.outputdata)
                 else:
-                    spa_getvalues(params, self.outputdata)
+                    pass
+                    #spa_getvalues(params, self.outputdata)
                 self.measuring=False
         
     def endapp(self):
