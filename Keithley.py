@@ -2,7 +2,7 @@ import visa
 
 class Keithley2400(object):
     
-    def init(self, gpib=22):
+    def __init__(self, gpib=22):
         """Set up gpib controller for device"""
         
         assert(gpib >= 0), "Please enter a valid gpib address"
@@ -84,22 +84,27 @@ class Keithley2400(object):
         
 class Keithley2657a(object):
     
-    def init(self, gpib=24):
+    def __init__(self, gpib=24):
         """Set up gpib controller for device"""
         
         assert(gpib >= 0), "Please enter a valid gpib address"
         self.gpib_addr = gpib
         
         rm = visa.ResourceManager()
-        self.inst = rm.open_resource(rm.list_resources()[0])
+        self.inst = rm.open_resource(rm.list_resources()[1])
+        print "wtf"
+        print rm.list_resources()
+        """
         for x in rm.list_resources():
             if str(self.gpib_addr) in x:
+                print x
                 print "Keithley Found"
                 self.inst = rm.open_resource(x)
             else:
                 print "Keithley not found\nPlease check GPIB Address"
                 exit()
                 
+        """
         print "Initializing Keithley 2657A"
 
         print self.inst.query("*IDN?")

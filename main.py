@@ -22,9 +22,8 @@ import tkFileDialog
 import xlsxwriter
 import Queue
 import random
-from easygui import *
 
-test=True
+test=False
 getting_file = False
 rm = visa.ResourceManager()
 print(rm.list_resources())
@@ -39,6 +38,7 @@ def GetIV(sourceparam, sourcemeter, dataout):
     currents = []
     voltages = []
     keithley = 0
+    sourcemeter  = 1
     if sourcemeter is 0:
         keithley = Keithley2400()
     else:
@@ -47,7 +47,6 @@ def GetIV(sourceparam, sourcemeter, dataout):
     if test:
         pass
     else:
-        keithley.init()
         keithley.configure_measurement(1, 0, compliance)
     last_volt = 0
     badCount = 0
@@ -57,14 +56,13 @@ def GetIV(sourceparam, sourcemeter, dataout):
         end_volt *=1000
         step_volt*=1000
         scaled = True
-        
+    
     if start_volt>end_volt:
         step_volt = -1*step_volt
     
     scaled = False
     print "looping now"
-
-        
+    
     for volt in xrange(start_volt, end_volt, int(step_volt)):
         start_time = time.time()
 
@@ -141,7 +139,6 @@ def GetCV(params, sourcemeter, dataout):
             keithley = Keithley2400()
         else:
             keithley = Keithley2657a()
-        keithley.init()
         keithley.configure_measurement()
     
     last_volt = 0
@@ -244,57 +241,109 @@ def GetCV(params, sourcemeter, dataout):
     
     return (voltages, currents, formatted_cap, parameter2)
 
-def spa_iv(sourceparam, meas_param):
-    (start_volt, end_volt, step_volt, delay_time, compliance) = sourceparam
+def spa_iv(params, dataout):
+    (start_volt, end_volt, step_volt, hold_time, compliance, int_time) = params
 
+    print params
+    voltage_smua = []
+    current_smua = []
+    
     current_smu1 = []
     current_smu2 = []
-    current_source = []
+    current_smu3 = []
+    current_smu4 = []
+    voltage_vmu1 = []
+
     voltage_source = Keithley2657a()
-    voltage_source.init()
-    voltage_source.configure_measurement()
-    voltage_source.configure_source(0.1)
+    voltage_source.configure_measurement(1, 0, compliance)
     voltage_source.enable_output(True)
     
     daq = Agilent4156()
-    daq.init()
-    daq.configure_integration_time()
+    daq.configure_integration_time(_int_time = int_time)
+
+    scaled = False
+    if step_volt < 1.0:
+        start_volt *=1000
+        end_volt *=1000
+        step_volt*=1000
+        scaled = True
+    
+    if start_volt>end_volt:
+        step_volt = -1*step_volt
+        
     for i in xrange(0, 4, 1):
-        daq.configure_channel(i)
+        daq.configure_channel(i)  
+    daq.configure_vmu()    
+          
+    last_volt = 0
+    for volt in xrange(start_volt, end_volt, step_volt):
 
-    for x in xrange(0, 10, 1):
 
-        voltage_source.set_output(x)
-        time.sleep(0.5)
+        if scaled:
+            voltage_source.set_output(volt/1000.0)
+        else:
+            voltage_source.set_output(volt)
+        time.sleep(hold_time)
+        
         daq.configure_measurement()
         daq.configure_sampling_measurement()
         daq.configure_sampling_stop()
-        if x is 0:
-            daq.inst.write(":PAGE:DISP:GRAP:Y2:NAME \'I2\';")
-            print daq.inst.query(":PAGE:DISP:LIST?")
-            daq.inst.write(":PAGE:DISP:LIST \'@TIME\', \'I1\', \'I2\'")
         
+        #daq.inst.write(":PAGE:DISP:GRAP:Y2:NAME \'I2\';")
+        daq.inst.write(":PAGE:DISP:LIST \'@TIME\', \'I1\', \'I2\', \'I3\', \'I4\', \'VMU1\'")
         daq.measurement_actions()
         daq.wait_for_acquisition()
         
         current_smu1.append(daq.read_trace_data("I1"))
         current_smu2.append(daq.read_trace_data("I2"))
-        current_source.append(voltage_source.get_current())
+        
+        #daq.inst.write(":PAGE:DISP:LIST \'@TIME\', \'I2\', \'I3\'")
+      
+
+        current_smu3.append(daq.read_trace_data("I3"))
+        current_smu4.append(daq.read_trace_data("I4"))
+        voltage_vmu1.append(daq.read_trace_data("VMU1"))
+        current_smua.append(voltage_source.get_current())
+        
+        if scaled:
+            voltage_smua.append(volt/1000.0)
+            last_volt = volt/1000.0
+        else:
+            voltage_smua.append(volt)
+            last_volt = volt
+        
+        print "SMU1-4"
         print current_smu1
         print current_smu2
-        print current_source
+        print current_smu3
+        print current_smu4
+        print "SMUA"
+        print current_smua
+        print "VMU1"
+        print voltage_vmu1
+        dataout.put((voltage_vmu1, current_smua, current_smu1, current_smu2, current_smu3, current_smu4))
+        
+        
+    while abs(last_volt)>=4:
+        time.sleep(0.5)
+
+        if test:
+            pass
+        else:
+            voltage_source.set_output(last_volt)
+        
+        if last_volt < 0:
+            last_volt +=5
+        else:
+            last_volt -=5
         
 
-    for x in xrange(0, 10, -2*1):
-        voltage_source.set_output(x)
-        time.sleep(delay_time)
-        
+    time.sleep(0.5)
     voltage_source.set_output(0)
     voltage_source.enable_output(False)
-    print current_smu1
-    print current_smu2
-    print current_source    
-
+    
+    
+    return(voltage_smua, current_smua, current_smu1, current_smu2, current_smu3, current_smu4, voltage_vmu1)
 
 
 class GuiPart:
@@ -337,10 +386,10 @@ class GuiPart:
         self.compliance.set("1.0")
         
         
-        self.f = plt.figure(figsize=(8, 6), dpi=60)
+        self.f = plt.figure(figsize=(6, 4), dpi=60)
         self.a = self.f.add_subplot(111)
         
-        self.cv_f = plt.figure(figsize=(8, 6), dpi=60)
+        self.cv_f = plt.figure(figsize=(6, 4), dpi=60)
         self.cv_a = self.cv_f.add_subplot(111)
         
         n = ttk.Notebook(root, width=800)
@@ -677,7 +726,7 @@ def getvalues(input_params, dataout):
     if "Windows" in platform.platform():
             (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename) = input_params
     else:
-        (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients) = input_params
+        (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, thowaway) = input_params
         filename = tkFileDialog.asksaveasfilename(initialdir = "/",title = "Save data",filetypes = (("Microsoft Excel file","*.xlsx"),("all files","*.*")))
     print "File done"
     
@@ -734,7 +783,7 @@ def cv_getvalues(input_params, dataout):
     if "Windows" in platform.platform():
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, frequencies, function, amplitude, impedance, integration, recipients, filename) = input_params
     else:
-        (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, frequencies, function, amplitude, impedance, integration, recipients) = input_params
+        (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, frequencies, function, amplitude, impedance, integration, recipients, thowaway) = input_params
         filename = tkFileDialog.asksaveasfilename(initialdir = "/",title = "Save data",filetypes = (("Microsoft Excel file","*.xlsx"),("all files","*.*")))
     
     try:
@@ -951,18 +1000,24 @@ class ThreadedProgram:
                     pass
                     #spa_getvalues(params, self.outputdata)
                 self.measuring=False
-        
+
     def endapp(self):
         self.running = 0
     
 if __name__=="__main__":
+    
+    params = (0, -20, 2, 0.5, 0.1, 0)
+
+    dataout = Queue.Queue()
+    spa_iv(params, dataout)
+    """
     root = Tk()
     root.geometry('800x800')
     root.title('Adap')
     client = ThreadedProgram(root)
     root.mainloop() 
     
-    """
+    
     daq = Agilent4156()
     daq.configure_vmu(discharge=True, _vmu=1, _mode = 0, name="VMU1")
     daq.configure_measurement()
@@ -978,6 +1033,7 @@ if __name__=="__main__":
     print "VMU+++++"
     print daq.read_trace_data("VMU1")
     print "VMU====="
-"""
+    """
+
 
     
