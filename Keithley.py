@@ -91,7 +91,7 @@ class Keithley2657a(object):
         self.gpib_addr = gpib
         
         rm = visa.ResourceManager()
-        self.inst = rm.open_resource(rm.list_resources()[1])
+        self.inst = 0
         print "wtf"
         print rm.list_resources()
         """

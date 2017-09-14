@@ -23,8 +23,7 @@ import xlsxwriter
 import Queue
 import random
 
-test=False
-getting_file = False
+test=True
 rm = visa.ResourceManager()
 print(rm.list_resources())
 #inst = rm.open_resource(rm.list_resources()[0])
@@ -39,14 +38,15 @@ def GetIV(sourceparam, sourcemeter, dataout):
     voltages = []
     keithley = 0
     sourcemeter  = 1
-    if sourcemeter is 0:
-        keithley = Keithley2400()
-    else:
-        keithley = Keithley2657a()
+
     
     if test:
         pass
     else:
+        if sourcemeter is 0:
+            keithley = Keithley2400()
+        else:
+            keithley = Keithley2657a()
         keithley.configure_measurement(1, 0, compliance)
     last_volt = 0
     badCount = 0
@@ -78,7 +78,7 @@ def GetIV(sourceparam, sourcemeter, dataout):
         time.sleep(delay_time)
         
         if test:
-            curr = volt*1e-9
+            curr = (volt+randint(0, 10))*1e-9
         else:
             curr = keithley.get_current()
         #curr = volt
@@ -155,6 +155,8 @@ def GetCV(params, sourcemeter, dataout):
         agilent.configure_aperture(int_time)
     badCount = 0
     
+    scaled = False
+    
     if step_volt < 1.0:
         start_volt *=1000
         end_volt *=1000
@@ -181,7 +183,7 @@ def GetCV(params, sourcemeter, dataout):
             time.sleep(delay_time)
 
             if test:
-                capacitance.append((volt*float(f)))
+                capacitance.append((volt+int(f)*randint(0, 10)))
                 curr = volt*1e-10
                 c.append(curr)
                 p2.append(volt*10)
@@ -223,15 +225,18 @@ def GetCV(params, sourcemeter, dataout):
         last_volt = volt
         #graph point here
         
-    while last_volt > 0:
-        if last_volt<=5:
-            keithley.set_output(0)
-            last_volt = 0
-        else:
-            keithley.set_output(last_volt-5)
-            last_volt -= 5
-            
-        time.sleep(0.5)
+    if test:
+        pass
+    else:
+        while last_volt > 0:
+            if last_volt<=5:
+                keithley.set_output(0)
+                last_volt = 0
+            else:
+                keithley.set_output(last_volt-5)
+                last_volt -= 5
+                
+            time.sleep(0.5)
     
     if test:
         pass
@@ -278,11 +283,13 @@ def spa_iv(params, dataout):
     last_volt = 0
     for volt in xrange(start_volt, end_volt, step_volt):
 
-
-        if scaled:
-            voltage_source.set_output(volt/1000.0)
+        if test:
+            pass
         else:
-            voltage_source.set_output(volt)
+            if scaled:
+                voltage_source.set_output(volt/1000.0)
+            else:
+                voltage_source.set_output(volt)
         time.sleep(hold_time)
         
         daq.configure_measurement()
@@ -645,8 +652,8 @@ class GuiPart:
                     line.set_antialiased(True)
                     line.set_color('r')
                     self.a.set_title("IV")
-                    self.a.set_xlabel("Voltage")
-                    self.a.set_ylabel("Current")
+                    self.a.set_xlabel("Voltage [V]")
+                    self.a.set_ylabel("Current [A]")
                     self.canvas.draw()
 
                     timetext = str(time.asctime(time.localtime(time.time()+timeremain)))
@@ -684,9 +691,9 @@ class GuiPart:
                         line.set_antialiased(True)
                         line.set_color(colors.get(i))   
                         i += 1
-                        self.a.set_title("CV")
-                        self.a.set_xlabel("Voltage")
-                        self.a.set_ylabel("Capacitance")
+                        self.cv_a.set_title("CV")
+                        self.cv_a.set_xlabel("Voltage [V]")
+                        self.cv_a.set_ylabel("Capacitance [F]")
                         self.cv_canvas.draw()
                         
                     timetext = str(time.asctime(time.localtime(time.time()+timeremain)))
@@ -1005,7 +1012,7 @@ class ThreadedProgram:
         self.running = 0
     
 if __name__=="__main__":
-    
+    """
     params = (0, -20, 2, 0.5, 0.1, 0)
 
     dataout = Queue.Queue()
@@ -1016,7 +1023,7 @@ if __name__=="__main__":
     root.title('Adap')
     client = ThreadedProgram(root)
     root.mainloop() 
-    
+    """
     
     daq = Agilent4156()
     daq.configure_vmu(discharge=True, _vmu=1, _mode = 0, name="VMU1")
