@@ -65,7 +65,7 @@ def GetIV(sourceparam, sourcemeter, dataout):
     
     for volt in xrange(start_volt, end_volt, int(step_volt)):
         start_time = time.time()
-
+        
         curr = 0
         if test:
             pass
@@ -74,7 +74,7 @@ def GetIV(sourceparam, sourcemeter, dataout):
                 keithley.set_output(volt/1000.0)
             else:
                 keithley.set_output(volt)
-            
+        
         time.sleep(delay_time)
         
         if test:
@@ -727,7 +727,6 @@ class GuiPart:
         self.a = self.f.add_subplot(111)
         self.type = 0
         
-    
     def cv_prepare_values(self):
         print "preparing cv values"
         self.first = True
@@ -989,7 +988,7 @@ class ThreadedProgram:
         self.thread1.start()
         self.periodicCall()
         self.measuring = False
-        
+    
     def periodicCall(self):
         #print "Period"
         self.gui.update()
@@ -1001,7 +1000,7 @@ class ThreadedProgram:
             sys.exit(0)
             
         self.master.after(200, self.periodicCall)
-        
+    
     def workerThread1(self):
         while self.running:
             #print "looping"
@@ -1018,20 +1017,24 @@ class ThreadedProgram:
                     pass
                     #spa_getvalues(params, self.outputdata)
                 self.measuring=False
-
+    
     def endapp(self):
         self.running = 0
     
-    def current_monitoring(self, source_params, sourcemeter, outputdata):
+class test:
+    
+    def current_monitoring(self, source_params, sourcemeter, dataout):
         
-        (voltage_point, step_volt, hold_time, compliance, test_time, hours, minutes, seconds) = source_params
+        (voltage_point, step_volt, hold_time, compliance, hours, minutes, seconds) = source_params
         
         currents = []
-        time = []
+        timestamps = []
+        voltages = []
         
         keithley = 0
         
         total_time = seconds+60*minutes+3600*hours
+        start_time = time.time()
         
         if test:
             pass
@@ -1053,12 +1056,11 @@ class ThreadedProgram:
             step_volt*=1000
             scaled = True
         
-        if start_volt>voltage_point:
+        if 0>voltage_point:
             step_volt = -1*step_volt
             
         for volt in xrange(0, voltage_point, step_volt):
             
-            start_time = time.time()
             curr = 0
             if test:
                 pass
@@ -1068,7 +1070,7 @@ class ThreadedProgram:
                 else:
                     keithley.set_output(volt)
                 
-            time.sleep(delay_time)
+            time.sleep(hold_time)
             
             if test:
                 curr = (volt+randint(0, 10))*1e-9
@@ -1085,22 +1087,41 @@ class ThreadedProgram:
                 print "Compliance reached"
                 break
             
-            currents.append(curr)
-            if scaled:
-                voltages.append(volt/1000.0)
-            else:
-                voltages.append(volt)
-    
             if scaled:
                 last_volt = volt/1000.0
             else:
                 last_volt = volt
             
-            dataout.put(((voltages, currents), 0, total_time))
+            dataout.put(((timestamps, currents), 0, total_time))
+            print """ramping up"""
             
+        print "current time"
+        print time.time()
+        print "Start time"
+        print start_time
+        print "total time"
+        print total_time
         
+        start_time = time.time()
+        while(time.time()<start_time+total_time):
+            time.sleep(20)
+            
+            dataout.put(((timestamps, currents), 0, total_time))
+            currents.append(randint(0, 10)*1e-9)
+            timestamps.append(time.time()-start_time)
+            print "timestamprs"
+            print timestamps
+            print "currents"
+            print currents  
+        print "Finished"
+    
 if __name__=="__main__":
     """
+    x = test()
+    data = Queue.Queue()
+    print time.time()
+    x.current_monitoring((10, 1, 1, 1, 0, 2, 0), 0, data)
+    
     params = (0, -20, 2, 0.5, 0.1, 0)
 
     dataout = Queue.Queue()
@@ -1112,7 +1133,6 @@ if __name__=="__main__":
     client = ThreadedProgram(root)
     root.mainloop() 
     """
-    
     daq = Agilent4156()
     daq.configure_vmu(discharge=True, _vmu=1, _mode = 0, name="VMU1")
     daq.configure_measurement()
