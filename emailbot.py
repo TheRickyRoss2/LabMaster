@@ -13,13 +13,11 @@ def sendMail(filename, recipients):
     body = email.mime.Text.MIMEText("""Your experiment has finished! Here is the data.
     """)
     msg.attach(body)
-    
     fp = open(filename, 'rb')
     att = email.mime.application.MIMEApplication(fp.read(), _subtype="xlsx")
     fp.close()
     att.add_header('Content-Disposition', 'attachment', filename=filename)
     msg.attach(att)
-    
     s = smtplib.SMTP('smtp.gmail.com:587')
     s.starttls()
     s.login('adapbot@gmail.com', 'AdapBot143')

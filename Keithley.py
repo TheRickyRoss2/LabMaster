@@ -10,7 +10,7 @@ class Keithley2400(object):
         
         print "Initializing keithley 2400"
         rm = visa.ResourceManager()
-        self.inst = 0
+        self.inst = rm.open_resource(rm.list_resources()[0])
         for x in rm.list_resources():
             if str(self.gpib_addr) in x:
                 print "found"
@@ -24,11 +24,12 @@ class Keithley2400(object):
         self.inst.write(":DISP:CND;")
         self.inst.timeout= 10000
         
-    def configure_measurement(self, _meas=1, _src=0, output_level=0, compliance = 5e-6):
+    def configure_measurement(self, _meas=1, output_level=0, compliance = 5e-6):
         """Set what we are measuring and autoranging"""      
         
         meas = {0:":VOLT", 1:":CURR", 2:":RES"}.get(_meas, ":CURR")
         self.inst.write(meas+":RANG:AUTO ON;")
+        _src = 0
         self.__configure_source(_src, output_level, compliance)
         
     def __configure_source(self, _func=0, output_level=0, compliance=5e-6):

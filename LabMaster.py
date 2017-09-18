@@ -23,7 +23,7 @@ import xlsxwriter
 import Queue
 import random
 
-test=True
+test = True
 rm = visa.ResourceManager()
 print(rm.list_resources())
 #inst = rm.open_resource(rm.list_resources()[0])
@@ -31,14 +31,14 @@ print(rm.list_resources())
 #print(inst.query("CLEAR 7"))
 #x = raw_input(">")
 
+
 def GetIV(sourceparam, sourcemeter, dataout):
     (start_volt, end_volt, step_volt, delay_time, compliance) = sourceparam
     
     currents = []
     voltages = []
     keithley = 0
-    sourcemeter  = 1
-
+    print "Meter" + str(sourcemeter)
     
     if test:
         pass
@@ -51,6 +51,7 @@ def GetIV(sourceparam, sourcemeter, dataout):
     last_volt = 0
     badCount = 0
     
+    scaled = False
     if step_volt < 1.0:
         start_volt *=1000
         end_volt *=1000
@@ -60,7 +61,6 @@ def GetIV(sourceparam, sourcemeter, dataout):
     if start_volt>end_volt:
         step_volt = -1*step_volt
     
-    scaled = False
     print "looping now"
     
     for volt in xrange(start_volt, end_volt, int(step_volt)):
@@ -71,7 +71,7 @@ def GetIV(sourceparam, sourcemeter, dataout):
             pass
         else:
             if scaled:
-                keithley.set_output(volt/1000)
+                keithley.set_output(volt/1000.0)
             else:
                 keithley.set_output(volt)
             
@@ -97,8 +97,11 @@ def GetIV(sourceparam, sourcemeter, dataout):
             voltages.append(volt/1000.0)
         else:
             voltages.append(volt)
-       
-        last_volt = volt
+
+        if scaled:
+            last_volt = volt/1000.0
+        else:
+            last_volt = volt
         
         time_remain = (time.time()-start_time)*(abs((end_volt-volt)/step_volt))
         
@@ -116,7 +119,8 @@ def GetIV(sourceparam, sourcemeter, dataout):
             last_volt +=5
         else:
             last_volt -=5
-        
+
+    time.sleep(0.5)
     if test:
         pass
     else:
@@ -648,7 +652,14 @@ class GuiPart:
                     self.pb["value"] = percent
                     self.pb.update()
                     (voltages, currents) = data
-                    line, = self.a.plot(voltages, currents)
+                    negative = False
+                    for v in voltages:
+                        if v < 0:
+                            negative = True
+                    if negative:
+                        line,= self.a.plot(map(lambda x: x*-1.0, voltages), map(lambda x: x*-1.0, currents))
+                    else:
+                        line, = self.a.plot(voltages, currents)
                     line.set_antialiased(True)
                     line.set_color('r')
                     self.a.set_title("IV")
@@ -716,7 +727,7 @@ class GuiPart:
         self.a = self.f.add_subplot(111)
         self.type = 0
         
-        
+    
     def cv_prepare_values(self):
         print "preparing cv values"
         self.first = True
@@ -734,7 +745,7 @@ def getvalues(input_params, dataout):
             (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename) = input_params
     else:
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, thowaway) = input_params
-        filename = tkFileDialog.asksaveasfilename(initialdir = "/",title = "Save data",filetypes = (("Microsoft Excel file","*.xlsx"),("all files","*.*")))
+        filename = tkFileDialog.asksaveasfilename(initialdir = "/",title = "Save data",filetypes = (("Microsoft Excel file","*.xlsx"),("all files","*.*")))+".xlsx"
     print "File done"
     
     try:
@@ -750,7 +761,7 @@ def getvalues(input_params, dataout):
         data = GetIV(source_params, {"Keithley 2675a":1, "Keithley 2400":0}.get(source_choice, 0), dataout)
             
     data_out = xlsxwriter.Workbook(filename)
-    path = filename+".xlsx"
+    path = filename
     worksheet = data_out.add_worksheet()
     
     (v, i) = data
@@ -807,7 +818,7 @@ def cv_getvalues(input_params, dataout):
         data = GetCV(params, {"Keithley 2657a":1, "Keithley 2400":0}.get(source_choice), dataout)
     
     data_out = xlsxwriter.Workbook(filename)
-    path = filename+".xlsx"
+    path = filename+str(time.asctime(time.localtime(time.time())))+".xlsx"
     worksheet = data_out.add_worksheet()
     
     (v, i, c, r) = data
@@ -1011,6 +1022,83 @@ class ThreadedProgram:
     def endapp(self):
         self.running = 0
     
+    def current_monitoring(self, source_params, sourcemeter, outputdata):
+        
+        (voltage_point, step_volt, hold_time, compliance, test_time, hours, minutes, seconds) = source_params
+        
+        currents = []
+        time = []
+        
+        keithley = 0
+        
+        total_time = seconds+60*minutes+3600*hours
+        
+        if test:
+            pass
+        else:
+            if sourcemeter is 0:
+                keithley = Keithley2400()
+            else:
+                keithley = Keithley2657a()
+            keithley.configure_measurement(1, 0, compliance)
+        
+        last_volt = 0
+        badCount = 0
+        
+        scaled = False
+        
+        if step_volt < 1.0:
+            start_volt *=1000
+            voltage_point *=1000
+            step_volt*=1000
+            scaled = True
+        
+        if start_volt>voltage_point:
+            step_volt = -1*step_volt
+            
+        for volt in xrange(0, voltage_point, step_volt):
+            
+            start_time = time.time()
+            curr = 0
+            if test:
+                pass
+            else:
+                if scaled:
+                    keithley.set_output(volt/1000.0)
+                else:
+                    keithley.set_output(volt)
+                
+            time.sleep(delay_time)
+            
+            if test:
+                curr = (volt+randint(0, 10))*1e-9
+            else:
+                curr = keithley.get_current()
+            #curr = volt
+            
+            if abs(curr)>abs(compliance-50e-9):
+                badCount = badCount + 1        
+            else:
+                badCount = 0    
+            
+            if badCount>=5 :
+                print "Compliance reached"
+                break
+            
+            currents.append(curr)
+            if scaled:
+                voltages.append(volt/1000.0)
+            else:
+                voltages.append(volt)
+    
+            if scaled:
+                last_volt = volt/1000.0
+            else:
+                last_volt = volt
+            
+            dataout.put(((voltages, currents), 0, total_time))
+            
+        
 if __name__=="__main__":
     """
     params = (0, -20, 2, 0.5, 0.1, 0)

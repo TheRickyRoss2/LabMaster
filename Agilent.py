@@ -139,7 +139,7 @@ class AgilentE4980a(object):
         self.inst.write("*RST;")
         self.inst.write("*ESE 60;*SRE 48;*CLS;")
         self.inst.timeout= 10000
-        
+
     def configure_measurement(self, _function="CPD", _impedance=3, autorange=True):
         
         function = {0:"CPD", 1:"CPQ",  2:"CPG",   3:"CPRP",  4:"CSD",  5:"CSQ", 6:"CSRS",   7:"LPD",
