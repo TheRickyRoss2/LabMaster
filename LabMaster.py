@@ -31,7 +31,6 @@ print(rm.list_resources())
 #print(inst.query("CLEAR 7"))
 #x = raw_input(">")
 
-
 def GetIV(sourceparam, sourcemeter, dataout):
     (start_volt, end_volt, step_volt, delay_time, compliance) = sourceparam
     
@@ -356,7 +355,6 @@ def spa_iv(params, dataout):
     
     return(voltage_smua, current_smua, current_smu1, current_smu2, current_smu3, current_smu4, voltage_vmu1)
 
-
 class GuiPart:
     
     def __init__(self, master, inputdata, outputdata, stopq):
@@ -640,7 +638,6 @@ class GuiPart:
         s.grid(row=4, column=7)
         
         print "finished drawing"
-        
         
     def update(self):
         while self.outputdata.qsize():
@@ -1149,6 +1146,3 @@ if __name__=="__main__":
     print daq.read_trace_data("VMU1")
     print "VMU====="
     """
-
-
-    
