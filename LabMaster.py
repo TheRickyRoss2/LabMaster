@@ -350,9 +350,107 @@ def spa_iv(params, dataout):
     time.sleep(0.5)
     voltage_source.set_output(0)
     voltage_source.enable_output(False)
-    
-    
     return(voltage_smua, current_smua, current_smu1, current_smu2, current_smu3, current_smu4, voltage_vmu1)
+    
+
+
+# TODO: Implement multiple IV's repeat and generate plots as it goes
+
+def mult_IV(sourceparam, sourcemeter, dataout):
+    pass
+
+# TODO: current monitor bugfixes and fifo implementation
+def current_monitoring(source_params, sourcemeter, dataout):
+        
+    (voltage_point, step_volt, hold_time, compliance, hours, minutes, seconds) = source_params
+      
+    currents = []
+    timestamps = []
+    voltages = []
+        
+    keithley = 0
+        
+    total_time = seconds + 60 * minutes + 3600 * hours
+    start_time = time.time()
+        
+    if test:
+        pass
+    else:
+        if sourcemeter is 0:
+            keithley = Keithley2400()
+        else:
+            keithley = Keithley2657a()
+        keithley.configure_measurement(1, 0, compliance)
+        
+    last_volt = 0
+    badCount = 0
+     
+    scaled = False
+      
+    if step_volt < 1.0:
+        voltage_point *= 1000
+        step_volt *= 1000
+        scaled = True
+        
+    if 0 > voltage_point:
+        step_volt = -1 * step_volt
+           
+    for volt in xrange(0, voltage_point, step_volt):
+            
+        curr = 0
+        if test:
+            pass
+        else:
+            if scaled:
+                keithley.set_output(volt / 1000.0)
+            else:
+                keithley.set_output(volt)
+                
+        time.sleep(hold_time)
+            
+        if test:
+            curr = (volt + randint(0, 10)) * 1e-9
+        else:
+            curr = keithley.get_current()
+        # curr = volt
+          
+        if abs(curr) > abs(compliance - 50e-9):
+            badCount = badCount + 1        
+        else:
+            badCount = 0    
+            
+        if badCount >= 5 :
+            print "Compliance reached"
+            break
+            
+        if scaled:
+            last_volt = volt / 1000.0
+        else:
+            last_volt = volt
+          
+        dataout.put(((timestamps, currents), 0, total_time))
+        print """ramping up"""
+            
+    print "current time"
+    print time.time()
+    print "Start time"
+    print start_time
+    print "total time"
+    print total_time
+        
+    start_time = time.time()
+    while(time.time() < start_time + total_time):
+        time.sleep(20)
+            
+        dataout.put(((timestamps, currents), 0, total_time))
+        currents.append(randint(0, 10) * 1e-9)
+        timestamps.append(time.time() - start_time)
+        print "timestamprs"
+        print timestamps
+        print "currents"
+        print currents  
+    print "Finished"
+  
 
 class GuiPart:
     
@@ -402,87 +500,88 @@ class GuiPart:
         
         n = ttk.Notebook(root, width=800)
         n.grid(row=0, column=0, columnspan=100, rowspan=100, sticky='NESW')
-        f1 = ttk.Frame(n)
-        f2 = ttk.Frame(n)
-        f3 = ttk.Frame(n)
-        n.add(f1, text='IV')
-        n.add(f2, text='CV')
-        n.add(f3, text='SPA')
-        
-        self.f1 = f1
-        self.f2 = f2
-        self.f3 = f3
+        self.f1 = ttk.Frame(n)
+        self.f2 = ttk.Frame(n)
+        self.f3 = ttk.Frame(n)
+        self.f4 = ttk.Frame(n)
+        self.f5 = ttk.Frame(n)
+        n.add(self.f1, text='Basic IV')
+        n.add(self.f2, text='CV')
+        n.add(self.f3, text='Param Anal IV ')
+        n.add(self.f4, text='Multiple IV')
+        n.add(self.f5, text='Current Monitor')
+
         if "Windows" in platform.platform():
             self.filename.set("iv_data")
-            s = Label(f1, text="File name:")
+            s = Label(self.f1, text="File name:")
             s.grid(row=0, column=1)
-            s = Entry(f1, textvariable=self.filename)
+            s = Entry(self.f1, textvariable=self.filename)
             s.grid(row=0, column=2)
         
-        s = Label(f1, text="Start Volt")
+        s = Label(self.f1, text="Start Volt")
         s.grid(row=1, column=1)
-        s = Entry(f1, textvariable=self.start_volt)
+        s = Entry(self.f1, textvariable=self.start_volt)
         s.grid(row=1, column=2)
-        s = Label(f1, text="V")
+        s = Label(self.f1, text="V")
         s.grid(row=1, column=3)
         
-        s = Label(f1, text="End Volt")
+        s = Label(self.f1, text="End Volt")
         s.grid(row=2, column=1)
-        s = Entry(f1, textvariable=self.end_volt)
+        s = Entry(self.f1, textvariable=self.end_volt)
         s.grid(row=2, column=2)
-        s = Label(f1, text="V")
+        s = Label(self.f1, text="V")
         s.grid(row=2, column=3)
         
-        s = Label(f1, text="Step Volt")
+        s = Label(self.f1, text="Step Volt")
         s.grid(row=3, column=1)
-        s = Entry(f1, textvariable=self.step_volt)
+        s = Entry(self.f1, textvariable=self.step_volt)
         s.grid(row=3, column=2)
-        s = Label(f1, text="V")
+        s = Label(self.f1, text="V")
         s.grid(row=3, column=3)
         
-        s = Label(f1, text="Hold Time")
+        s = Label(self.f1, text="Hold Time")
         s.grid(row=4, column=1)
-        s = Entry(f1, textvariable=self.hold_time)
+        s = Entry(self.f1, textvariable=self.hold_time)
         s.grid(row=4, column=2)
-        s = Label(f1, text="s")
+        s = Label(self.f1, text="s")
         s.grid(row=4, column=3)
         
-        s = Label(f1, text="Compliance")
+        s = Label(self.f1, text="Compliance")
         s.grid(row=5, column=1)
-        s = Entry(f1, textvariable=self.compliance)
+        s = Entry(self.f1, textvariable=self.compliance)
         s.grid(row=5, column=2)
         compliance_choices = {'mA', 'uA', 'nA'}
         self.compliance_scale.set('uA')
-        s = OptionMenu(f1, self.compliance_scale, *compliance_choices)
+        s = OptionMenu(self.f1, self.compliance_scale, *compliance_choices)
         s.grid(row=5, column=3)
         
         self.recipients.set("adapbot@gmail.com")
-        s = Label(f1, text="Email data to:")
+        s = Label(self.f1, text="Email data to:")
         s.grid(row=6, column=1)
-        s = Entry(f1, textvariable=self.recipients)
+        s = Entry(self.f1, textvariable=self.recipients)
         s.grid(row=6, column=2)
     
         source_choices = {'Keithley 2400', 'Keithley 2657a'}
         self.source_choice.set('Keithley 2657a')
-        s = OptionMenu(f1, self.source_choice, *source_choices)
+        s = OptionMenu(self.f1, self.source_choice, *source_choices)
         s.grid(row=0, column=7)
         
-        s = Label(f1, text="Progress:")
+        s = Label(self.f1, text="Progress:")
         s.grid(row=11, column=1)
        
-        s = Label(f1, text="Est finish at:")
+        s = Label(self.f1, text="Est finish at:")
         s.grid(row=12, column=1)
         
         timetext = str(time.asctime(time.localtime(time.time())))
-        self.timer = Label(f1, text=timetext)
+        self.timer = Label(self.f1, text=timetext)
         self.timer.grid(row=12, column=2)
         
-        self.pb = ttk.Progressbar(f1, orient="horizontal", length=200, mode="determinate")
+        self.pb = ttk.Progressbar(self.f1, orient="horizontal", length=200, mode="determinate")
         self.pb.grid(row=11, column=2, columnspan=5)
         self.pb["maximum"] = 100
         self.pb["value"] = 0
         
-        self.canvas = FigureCanvasTkAgg(self.f, master=f1)
+        self.canvas = FigureCanvasTkAgg(self.f, master=self.f1)
         self.canvas.get_tk_widget().grid(row=7, columnspan=10)
         self.a.set_title("IV")
         self.a.set_xlabel("Voltage")
@@ -493,10 +592,10 @@ class GuiPart:
         # plt.title("IV")
         self.canvas.draw()
         
-        s = Button(f1, text="Start IV", command=self.prepare_values)
+        s = Button(self.f1, text="Start IV", command=self.prepare_values)
         s.grid(row=3, column=7)
         
-        s = Button(f1, text="Stop", command=self.quit)
+        s = Button(self.f1, text="Stop", command=self.quit)
         s.grid(row=4, column=7)
         
         """
@@ -508,132 +607,132 @@ class GuiPart:
         self.cv_filename.set("cv_data")
         
         if "Windows" in platform.platform():
-            s = Label(f2, text="File name")
+            s = Label(self.f2, text="File name")
             s.grid(row=0, column=1)
-            s = Entry(f2, textvariable=self.cv_filename)
+            s = Entry(self.f2, textvariable=self.cv_filename)
             s.grid(row=0, column=2)
         
         self.cv_start_volt.set("0.0")
-        s = Label(f2, text="Start Volt")
+        s = Label(self.f2, text="Start Volt")
         s.grid(row=1, column=1)
-        s = Entry(f2, textvariable=self.cv_start_volt)
+        s = Entry(self.f2, textvariable=self.cv_start_volt)
         s.grid(row=1, column=2)       
-        s = Label(f2, text="V")
+        s = Label(self.f2, text="V")
         s.grid(row=1, column=3)
         
         self.cv_end_volt.set("40.0")
-        s = Label(f2, text="End Volt")
+        s = Label(self.f2, text="End Volt")
         s.grid(row=2, column=1)
-        s = Entry(f2, textvariable=self.cv_end_volt)
+        s = Entry(self.f2, textvariable=self.cv_end_volt)
         s.grid(row=2, column=2)
-        s = Label(f2, text="V")
+        s = Label(self.f2, text="V")
         s.grid(row=2, column=3)
         
         self.cv_step_volt.set("1.0")
-        s = Label(f2, text="Step Volt")
+        s = Label(self.f2, text="Step Volt")
         s.grid(row=3, column=1)
-        s = Entry(f2, textvariable=self.cv_step_volt)
+        s = Entry(self.f2, textvariable=self.cv_step_volt)
         s.grid(row=3, column=2)
-        s = Label(f2, text="V")
+        s = Label(self.f2, text="V")
         s.grid(row=3, column=3)
         
         self.cv_hold_time.set("1.0")
-        s = Label(f2, text="Hold Time")
+        s = Label(self.f2, text="Hold Time")
         s.grid(row=4, column=1)
-        s = Entry(f2, textvariable=self.cv_hold_time)
+        s = Entry(self.f2, textvariable=self.cv_hold_time)
         s.grid(row=4, column=2)
-        s = Label(f2, text="s")
+        s = Label(self.f2, text="s")
         s.grid(row=4, column=3)
         
         self.cv_compliance.set("1.0")
-        s = Label(f2, text="Compliance")
+        s = Label(self.f2, text="Compliance")
         s.grid(row=5, column=1)
-        s = Entry(f2, textvariable=self.cv_compliance)
+        s = Entry(self.f2, textvariable=self.cv_compliance)
         s.grid(row=5, column=2)
         self.cv_compliance_scale.set('uA')
-        s = OptionMenu(f2, self.cv_compliance_scale, *compliance_choices)
+        s = OptionMenu(self.f2, self.cv_compliance_scale, *compliance_choices)
         s.grid(row=5, column=3)
         
         self.cv_recipients.set("adapbot@gmail.com")
-        s = Label(f2, text="Email data to:")
+        s = Label(self.f2, text="Email data to:")
         s.grid(row=6, column=1)
-        s = Entry(f2, textvariable=self.cv_recipients)
+        s = Entry(self.f2, textvariable=self.cv_recipients)
         s.grid(row=6, column=2)
         
-        s = Label(f2, text="Agilent LCRMeter Parameters", relief=RAISED)
+        s = Label(self.f2, text="Agilent LCRMeter Parameters", relief=RAISED)
         s.grid(row=7, column=1, columnspan=2)
         
         self.cv_impedance = StringVar()
-        s = Label(f2, text="Function")
+        s = Label(self.f2, text="Function")
         s.grid(row=8, column=1)
         function_choices = {"CPD", "CPQ", "CPG", "CPRP", "CSD", "CSQ", "CSRS", "LPD",
                  "LPQ", "LPG", "LPRP", "LPRD", "LSD", "LSQ", "LSRS", "LSRD",
                  "RX", "ZTD", "ZTR", "GB", "YTD", "YTR", "VDID"}
         self.cv_function_choice = StringVar()
         self.cv_function_choice.set('CPD')
-        s = OptionMenu(f2, self.cv_function_choice, *function_choices)
+        s = OptionMenu(self.f2, self.cv_function_choice, *function_choices)
         s.grid(row=8, column=2)
         
         self.cv_impedance.set("2000")
-        s = Label(f2, text="Impedance")
+        s = Label(self.f2, text="Impedance")
         s.grid(row=9, column=1)
-        s = Entry(f2, textvariable=self.cv_impedance)
+        s = Entry(self.f2, textvariable=self.cv_impedance)
         s.grid(row=9, column=2)
-        s = Label(f2, text="Ω")
+        s = Label(self.f2, text="Ω")
         s.grid(row=9, column=3)
         
         self.cv_frequencies.set("100, 200, 1000, 2000")
-        s = Label(f2, text="Frequencies")
+        s = Label(self.f2, text="Frequencies")
         s.grid(row=10, column=1)
-        s = Entry(f2, textvariable=self.cv_frequencies)
+        s = Entry(self.f2, textvariable=self.cv_frequencies)
         s.grid(row=10, column=2)
-        s = Label(f2, text="Hz")
+        s = Label(self.f2, text="Hz")
         s.grid(row=10, column=3)
         
         self.cv_amplitude.set("5.0")
-        s = Label(f2, text="Signal Amplitude")
+        s = Label(self.f2, text="Signal Amplitude")
         s.grid(row=11, column=1)
-        s = Entry(f2, textvariable=self.cv_amplitude)
+        s = Entry(self.f2, textvariable=self.cv_amplitude)
         s.grid(row=11, column=2)
-        s = Label(f2, text="V")
+        s = Label(self.f2, text="V")
         s.grid(row=11, column=3)
         
         cv_int_choices = {"Short", "Medium", "Long"}
-        s = Label(f2, text="Integration time")
+        s = Label(self.f2, text="Integration time")
         s.grid(row=12, column=1)
         self.cv_integration.set("Short")
-        s = OptionMenu(f2, self.cv_integration, *cv_int_choices)
+        s = OptionMenu(self.f2, self.cv_integration, *cv_int_choices)
         s.grid(row=12, column=2)
     
         self.cv_source_choice.set('Keithley 2657a')
-        s = OptionMenu(f2, self.cv_source_choice, *source_choices)
+        s = OptionMenu(self.f2, self.cv_source_choice, *source_choices)
         s.grid(row=0, column=7)
         
-        s = Label(f2, text="Progress:")
+        s = Label(self.f2, text="Progress:")
         s.grid(row=14, column=1)
         
-        self.cv_pb = ttk.Progressbar(f2, orient="horizontal", length=200, mode="determinate")
+        self.cv_pb = ttk.Progressbar(self.f2, orient="horizontal", length=200, mode="determinate")
         self.cv_pb.grid(row=14, column=2, columnspan=5)
         self.cv_pb["maximum"] = 100
         self.cv_pb["value"] = 0
         
-        s = Label(f2, text="Est finish at:")
+        s = Label(self.f2, text="Est finish at:")
         s.grid(row=15, column=1)
         cv_timetext = str(time.asctime(time.localtime(time.time())))
         self.timer = Label(self.f2, text=cv_timetext)
         self.timer.grid(row=15, column=2)
         
-        self.cv_canvas = FigureCanvasTkAgg(self.cv_f, master=f2)
+        self.cv_canvas = FigureCanvasTkAgg(self.cv_f, master=self.f2)
         self.cv_canvas.get_tk_widget().grid(row=13, column=0, columnspan=10)
         self.cv_a.set_title("CV")
         self.cv_a.set_xlabel("Voltage")
         self.cv_a.set_ylabel("Capacitance")
         self.cv_canvas.draw()
         
-        s = Button(f2, text="Start CV", command=self.cv_prepare_values)
+        s = Button(self.f2, text="Start CV", command=self.cv_prepare_values)
         s.grid(row=3, column=7)
         
-        s = Button(f2, text="Stop", command=self.quit)
+        s = Button(self.f2, text="Stop", command=self.quit)
         s.grid(row=4, column=7)
         
         print "finished drawing"
@@ -967,7 +1066,18 @@ def cv_getvalues(input_params, dataout):
         print "Failed to get recipients"
         pass
     
-    
+# TODO: Implement value parsing from gui
+def spa_getvalues(input_params, dataout):
+    pass
+
+# TODO: Implement value parsing from gui
+def mult_IV_getvalues(input_params, dataout):
+    pass
+
+# TODO: Implement value parsing from gui
+def current_monitoring_getvalues(input_params, dataout):
+    pass
+
     
 class ThreadedProgram:
     
@@ -1018,130 +1128,16 @@ class ThreadedProgram:
     def endapp(self):
         self.running = 0
     
-class test:
-    
-    def current_monitoring(self, source_params, sourcemeter, dataout):
-        
-        (voltage_point, step_volt, hold_time, compliance, hours, minutes, seconds) = source_params
-        
-        currents = []
-        timestamps = []
-        voltages = []
-        
-        keithley = 0
-        
-        total_time = seconds + 60 * minutes + 3600 * hours
-        start_time = time.time()
-        
-        if test:
-            pass
-        else:
-            if sourcemeter is 0:
-                keithley = Keithley2400()
-            else:
-                keithley = Keithley2657a()
-            keithley.configure_measurement(1, 0, compliance)
-        
-        last_volt = 0
-        badCount = 0
-        
-        scaled = False
-        
-        if step_volt < 1.0:
-            voltage_point *= 1000
-            step_volt *= 1000
-            scaled = True
-        
-        if 0 > voltage_point:
-            step_volt = -1 * step_volt
-            
-        for volt in xrange(0, voltage_point, step_volt):
-            
-            curr = 0
-            if test:
-                pass
-            else:
-                if scaled:
-                    keithley.set_output(volt / 1000.0)
-                else:
-                    keithley.set_output(volt)
-                
-            time.sleep(hold_time)
-            
-            if test:
-                curr = (volt + randint(0, 10)) * 1e-9
-            else:
-                curr = keithley.get_current()
-            # curr = volt
-            
-            if abs(curr) > abs(compliance - 50e-9):
-                badCount = badCount + 1        
-            else:
-                badCount = 0    
-            
-            if badCount >= 5 :
-                print "Compliance reached"
-                break
-            
-            if scaled:
-                last_volt = volt / 1000.0
-            else:
-                last_volt = volt
-            
-            dataout.put(((timestamps, currents), 0, total_time))
-            print """ramping up"""
-            
-        print "current time"
-        print time.time()
-        print "Start time"
-        print start_time
-        print "total time"
-        print total_time
-        
-        start_time = time.time()
-        while(time.time() < start_time + total_time):
-            time.sleep(20)
-            
-            dataout.put(((timestamps, currents), 0, total_time))
-            currents.append(randint(0, 10) * 1e-9)
-            timestamps.append(time.time() - start_time)
-            print "timestamprs"
-            print timestamps
-            print "currents"
-            print currents  
-        print "Finished"
-    
+  
 if __name__ == "__main__":
     """
-    x = test()
     data = Queue.Queue()
     print time.time()
-    x.current_monitoring((10, 1, 1, 1, 0, 2, 0), 0, data)
-    
-    params = (0, -20, 2, 0.5, 0.1, 0)
+    current_monitoring((10, 1, 1, 1, 0, 2, 0), 0, data)
 
-    dataout = Queue.Queue()
-    spa_iv(params, dataout)
     """
     root = Tk()
     root.geometry('800x800')
     root.title('Adap')
     client = ThreadedProgram(root)
     root.mainloop() 
-    """
-    daq = Agilent4156()
-    daq.configure_vmu(discharge=True, _vmu=1, _mode = 0, name="VMU1")
-    daq.configure_measurement()
-    daq.configure_sampling_measurement()
-    daq.configure_sampling_stop()
-    print daq.inst.query(":PAGE:DISP:LIST?")
-    daq.inst.write(":PAGE:DISP:LIST \'@TIME\', \'I1\', \'VMU1\';")
-    
-    daq.measurement_actions()
-    daq.wait_for_acquisition()
-    
-    print daq.read_trace_data("I1")
-    print "VMU+++++"
-    print daq.read_trace_data("VMU1")
-    print "VMU====="
-    """
