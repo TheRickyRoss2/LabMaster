@@ -18,31 +18,31 @@ class Keithley2400(object):
         
         print self.inst.query("*IDN?;")
         self.inst.write("*RST;")
-        #self.inst.query("*RST;*IDN?;")
+        # self.inst.query("*RST;*IDN?;")
         self.inst.write("*ESE 1;*SRE 32;*CLS;:FUNC:CONC ON;:FUNC:ALL;:TRAC:FEED:CONT NEV;:RES:MODE MAN;")
         print self.inst.query(":SYST:ERR?;")
         self.inst.write(":DISP:CND;")
-        self.inst.timeout= 10000
+        self.inst.timeout = 10000
         
-    def configure_measurement(self, _meas=1, output_level=0, compliance = 5e-6):
+    def configure_measurement(self, _meas=1, output_level=0, compliance=5e-6):
         """Set what we are measuring and autoranging"""      
         
         meas = {0:":VOLT", 1:":CURR", 2:":RES"}.get(_meas, ":CURR")
-        self.inst.write(meas+":RANG:AUTO ON;")
+        self.inst.write(meas + ":RANG:AUTO ON;")
         _src = 0
         self.__configure_source(_src, output_level, compliance)
         
     def __configure_source(self, _func=0, output_level=0, compliance=5e-6):
         """Set output level and function"""
         
-        assert(_func>=0 and _func<2), "Invalid Source function"
-        assert(output_level>-1100 and output_level < 1100), "Voltage out of range"
-        assert(compliance<0.5), "Compliance out of range"
+        assert(_func >= 0 and _func < 2), "Invalid Source function"
+        assert(output_level > -1100 and output_level < 1100), "Voltage out of range"
+        assert(compliance < 0.5), "Compliance out of range"
         func = {0:"VOLT", 1:"CURR"}.get(_func, "VOLT")
-        self.inst.write("SOUR:FUNC "+func+";:SOUR:"+func+" "+str(float(output_level))+";:CURR:PROT "+str(float(compliance))+";")
+        self.inst.write("SOUR:FUNC " + func + ";:SOUR:" + func + " " + str(float(output_level)) + ";:CURR:PROT " + str(float(compliance)) + ";")
         
     def set_output(self, level=0):
-        self.inst.write(":SOUR:VOLT "+str(float(level)))
+        self.inst.write(":SOUR:VOLT " + str(float(level)))
         self.enable_output(True)
         
     def enable_output(self, output=False):
@@ -56,12 +56,12 @@ class Keithley2400(object):
     def __configure_multipoint(self, arm_count=1, trigger_count=1, mode=0):
         """Configures immediate triggering and arming"""
         
-        assert(mode>=0 and mode <3), "Invalid mode"
+        assert(mode >= 0 and mode < 3), "Invalid mode"
         source_mode = {0:"FIX", 1:"SWE", 2:"LIST"}.get(mode)
-        self.inst.write(":ARM:COUN "+str(arm_count)+";:TRIG:COUN "+str(trigger_count)+";:SOUR:VOLT:MODE "+source_mode+";:SOUR:CURR:MODE "+source_mode)
+        self.inst.write(":ARM:COUN " + str(arm_count) + ";:TRIG:COUN " + str(trigger_count) + ";:SOUR:VOLT:MODE " + source_mode + ";:SOUR:CURR:MODE " + source_mode)
         
     def __configure_trigger(self, delay=0.0):
-        self.inst.write("ARM:SOUR IMM;:ARM:TIM 0.010000;:TRIG:SOUR IMM;:TRIG:DEL "+str(delay)+";")
+        self.inst.write("ARM:SOUR IMM;:ARM:TIM 0.010000;:TRIG:SOUR IMM;:TRIG:DEL " + str(delay) + ";")
         
     def __initiate_trigger(self):
         self.inst.write(":TRIG:CLE;:INIT;")
@@ -113,21 +113,21 @@ class Keithley2657a(object):
         self.inst.write("errorqueue.clear() localnode.prompts = 0 localnode.showerrors = 0")
         print self.inst.query("print(errorqueue.next())")
         self.inst.write("display.smua.measure.func = display.MEASURE_DCAMPS")
-        self.inst.timeout= 10000
+        self.inst.timeout = 10000
         self.__reset_smu()
         
     def __configure_source(self, _source=1):
         source = {0:"OUTPUT_DCAMPS", 1:"OUTPUT_DCVOLTS"}.get(_source, "OUTPUT_DCVOLTS")        
-        self.inst.write("smua.source.func = smua."+source)
+        self.inst.write("smua.source.func = smua." + source)
         
     def set_output(self, level=0):
-        self.inst.write("smua.source.levelv = "+str(level))
+        self.inst.write("smua.source.levelv = " + str(level))
         self.enable_output(True)
         
     def __configure_compliance(self, limit=0.1):
-        self.inst.write("smua.source.limiti = "+str(limit))
+        self.inst.write("smua.source.limiti = " + str(limit))
         
-    def configure_measurement(self, _func = 1, output_level=0, compliance=0.1):
+    def configure_measurement(self, _func=1, output_level=0, compliance=0.1):
         self.__configure_source(_func)
         self.__configure_compliance(compliance)
         self.set_output(output_level)

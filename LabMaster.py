@@ -26,10 +26,10 @@ import random
 test = True
 rm = visa.ResourceManager()
 print(rm.list_resources())
-#inst = rm.open_resource(rm.list_resources()[0])
-#print(inst.query("REMOTE 716"))
-#print(inst.query("CLEAR 7"))
-#x = raw_input(">")
+# inst = rm.open_resource(rm.list_resources()[0])
+# print(inst.query("REMOTE 716"))
+# print(inst.query("CLEAR 7"))
+# x = raw_input(">")
 
 def GetIV(sourceparam, sourcemeter, dataout):
     (start_volt, end_volt, step_volt, delay_time, compliance) = sourceparam
@@ -52,13 +52,13 @@ def GetIV(sourceparam, sourcemeter, dataout):
     
     scaled = False
     if step_volt < 1.0:
-        start_volt *=1000
-        end_volt *=1000
-        step_volt*=1000
+        start_volt *= 1000
+        end_volt *= 1000
+        step_volt *= 1000
         scaled = True
     
-    if start_volt>end_volt:
-        step_volt = -1*step_volt
+    if start_volt > end_volt:
+        step_volt = -1 * step_volt
     
     print "looping now"
     
@@ -70,44 +70,44 @@ def GetIV(sourceparam, sourcemeter, dataout):
             pass
         else:
             if scaled:
-                keithley.set_output(volt/1000.0)
+                keithley.set_output(volt / 1000.0)
             else:
                 keithley.set_output(volt)
         
         time.sleep(delay_time)
         
         if test:
-            curr = (volt+randint(0, 10))*1e-9
+            curr = (volt + randint(0, 10)) * 1e-9
         else:
             curr = keithley.get_current()
-        #curr = volt
+        # curr = volt
         
-        if abs(curr)>abs(compliance-50e-9):
+        if abs(curr) > abs(compliance - 50e-9):
             badCount = badCount + 1        
         else:
             badCount = 0    
         
-        if badCount>=5 :
+        if badCount >= 5 :
             print "Compliance reached"
             break
         
         currents.append(curr)
         if scaled:
-            voltages.append(volt/1000.0)
+            voltages.append(volt / 1000.0)
         else:
             voltages.append(volt)
 
         if scaled:
-            last_volt = volt/1000.0
+            last_volt = volt / 1000.0
         else:
             last_volt = volt
         
-        time_remain = (time.time()-start_time)*(abs((end_volt-volt)/step_volt))
+        time_remain = (time.time() - start_time) * (abs((end_volt - volt) / step_volt))
         
-        dataout.put( ((voltages, currents), 100*abs((volt+step_volt)/float(end_volt)), time_remain) )
+        dataout.put(((voltages, currents), 100 * abs((volt + step_volt) / float(end_volt)), time_remain))
         
         
-    while abs(last_volt)>5:
+    while abs(last_volt) > 5:
         if test:
             pass
         else:
@@ -115,9 +115,9 @@ def GetIV(sourceparam, sourcemeter, dataout):
         
         time.sleep(0.5)
         if last_volt < 0:
-            last_volt +=5
+            last_volt += 5
         else:
-            last_volt -=5
+            last_volt -= 5
 
     time.sleep(0.5)
     if test:
@@ -131,7 +131,7 @@ def GetCV(params, sourcemeter, dataout):
     
     capacitance = []
     voltages = []
-    p2=  []
+    p2 = []
     c = []
     keithley = 0
     
@@ -161,13 +161,13 @@ def GetCV(params, sourcemeter, dataout):
     scaled = False
     
     if step_volt < 1.0:
-        start_volt *=1000
-        end_volt *=1000
-        step_volt*=1000
+        start_volt *= 1000
+        end_volt *= 1000
+        step_volt *= 1000
         scaled = True
     
-    if start_volt>end_volt:
-        step_volt = -1*step_volt
+    if start_volt > end_volt:
+        step_volt = -1 * step_volt
     
     start_time = time.time()
     for volt in xrange(start_volt, end_volt, step_volt):
@@ -177,7 +177,7 @@ def GetCV(params, sourcemeter, dataout):
             pass
         else:
             if scaled:
-                keithley.set_output(volt/1000.0)
+                keithley.set_output(volt / 1000.0)
             else:
                 keithley.set_output(volt)
             
@@ -186,57 +186,57 @@ def GetCV(params, sourcemeter, dataout):
             time.sleep(delay_time)
 
             if test:
-                capacitance.append((volt+int(f)*randint(0, 10)))
-                curr = volt*1e-10
+                capacitance.append((volt + int(f) * randint(0, 10)))
+                curr = volt * 1e-10
                 c.append(curr)
-                p2.append(volt*10)
+                p2.append(volt * 10)
             else:
                 agilent.configure_measurement_signal(float(f), 0, level)
                 (data, aux) = agilent.read_data()
                 capacitance.append(data)
                 p2.append(aux)
-                curr= keithley.get_current()
+                curr = keithley.get_current()
                 c.append(curr)
         
             
-        if abs(curr)>abs(compliance-50e-9):
+        if abs(curr) > abs(compliance - 50e-9):
             badCount = badCount + 1        
         else:
             badCount = 0    
         
-        if badCount>=5 :
+        if badCount >= 5 :
             print "Compliance reached"
             break
         
-        time_remain = (time.time()-start_time)*(abs((end_volt-volt)/step_volt))
+        time_remain = (time.time() - start_time) * (abs((end_volt - volt) / step_volt))
         
         if scaled:
-            voltages.append(volt/1000.0)
+            voltages.append(volt / 1000.0)
         else:
             voltages.append(volt)
         formatted_cap = []
         parameter2 = []
         currents = []
-        for i in xrange(0,len(frequencies), 1):
+        for i in xrange(0, len(frequencies), 1):
             formatted_cap.append(capacitance[i::len(frequencies)])
             parameter2.append(p2[i::len(frequencies)])
             currents.append(c[i::len(frequencies)])
-        dataout.put(((voltages, formatted_cap), 100*abs((volt+step_volt)/float(end_volt)), time_remain))
+        dataout.put(((voltages, formatted_cap), 100 * abs((volt + step_volt) / float(end_volt)), time_remain))
         
-        time_remain = time.time()+(time.time()-start_time)*(abs((volt-end_volt)/end_volt))
+        time_remain = time.time() + (time.time() - start_time) * (abs((volt - end_volt) / end_volt))
         
         last_volt = volt
-        #graph point here
+        # graph point here
         
     if test:
         pass
     else:
         while last_volt > 0:
-            if last_volt<=5:
+            if last_volt <= 5:
                 keithley.set_output(0)
                 last_volt = 0
             else:
-                keithley.set_output(last_volt-5)
+                keithley.set_output(last_volt - 5)
                 last_volt -= 5
                 
             time.sleep(0.5)
@@ -267,17 +267,17 @@ def spa_iv(params, dataout):
     voltage_source.enable_output(True)
     
     daq = Agilent4156()
-    daq.configure_integration_time(_int_time = int_time)
+    daq.configure_integration_time(_int_time=int_time)
 
     scaled = False
     if step_volt < 1.0:
-        start_volt *=1000
-        end_volt *=1000
-        step_volt*=1000
+        start_volt *= 1000
+        end_volt *= 1000
+        step_volt *= 1000
         scaled = True
     
-    if start_volt>end_volt:
-        step_volt = -1*step_volt
+    if start_volt > end_volt:
+        step_volt = -1 * step_volt
         
     for i in xrange(0, 4, 1):
         daq.configure_channel(i)  
@@ -290,7 +290,7 @@ def spa_iv(params, dataout):
             pass
         else:
             if scaled:
-                voltage_source.set_output(volt/1000.0)
+                voltage_source.set_output(volt / 1000.0)
             else:
                 voltage_source.set_output(volt)
         time.sleep(hold_time)
@@ -299,7 +299,7 @@ def spa_iv(params, dataout):
         daq.configure_sampling_measurement()
         daq.configure_sampling_stop()
         
-        #daq.inst.write(":PAGE:DISP:GRAP:Y2:NAME \'I2\';")
+        # daq.inst.write(":PAGE:DISP:GRAP:Y2:NAME \'I2\';")
         daq.inst.write(":PAGE:DISP:LIST \'@TIME\', \'I1\', \'I2\', \'I3\', \'I4\', \'VMU1\'")
         daq.measurement_actions()
         daq.wait_for_acquisition()
@@ -307,7 +307,7 @@ def spa_iv(params, dataout):
         current_smu1.append(daq.read_trace_data("I1"))
         current_smu2.append(daq.read_trace_data("I2"))
         
-        #daq.inst.write(":PAGE:DISP:LIST \'@TIME\', \'I2\', \'I3\'")
+        # daq.inst.write(":PAGE:DISP:LIST \'@TIME\', \'I2\', \'I3\'")
       
 
         current_smu3.append(daq.read_trace_data("I3"))
@@ -316,8 +316,8 @@ def spa_iv(params, dataout):
         current_smua.append(voltage_source.get_current())
         
         if scaled:
-            voltage_smua.append(volt/1000.0)
-            last_volt = volt/1000.0
+            voltage_smua.append(volt / 1000.0)
+            last_volt = volt / 1000.0
         else:
             voltage_smua.append(volt)
             last_volt = volt
@@ -334,7 +334,7 @@ def spa_iv(params, dataout):
         dataout.put((voltage_vmu1, current_smua, current_smu1, current_smu2, current_smu3, current_smu4))
         
         
-    while abs(last_volt)>=4:
+    while abs(last_volt) >= 4:
         time.sleep(0.5)
 
         if test:
@@ -343,9 +343,9 @@ def spa_iv(params, dataout):
             voltage_source.set_output(last_volt)
         
         if last_volt < 0:
-            last_volt +=5
+            last_volt += 5
         else:
-            last_volt -=5
+            last_volt -= 5
         
 
     time.sleep(0.5)
@@ -417,40 +417,40 @@ class GuiPart:
             self.filename.set("iv_data.xlsx")
             s = Label(f1, text="File name:")
             s.grid(row=0, column=1)
-            s = Entry(f1, textvariable = self.filename)
+            s = Entry(f1, textvariable=self.filename)
             s.grid(row=0, column=2)
         
         s = Label(f1, text="Start Volt")
         s.grid(row=1, column=1)
-        s = Entry(f1, textvariable = self.start_volt)
+        s = Entry(f1, textvariable=self.start_volt)
         s.grid(row=1, column=2)
         s = Label(f1, text="V")
         s.grid(row=1, column=3)
         
         s = Label(f1, text="End Volt")
         s.grid(row=2, column=1)
-        s = Entry(f1, textvariable = self.end_volt)
+        s = Entry(f1, textvariable=self.end_volt)
         s.grid(row=2, column=2)
         s = Label(f1, text="V")
         s.grid(row=2, column=3)
         
         s = Label(f1, text="Step Volt")
         s.grid(row=3, column=1)
-        s = Entry(f1, textvariable = self.step_volt)
+        s = Entry(f1, textvariable=self.step_volt)
         s.grid(row=3, column=2)
         s = Label(f1, text="V")
         s.grid(row=3, column=3)
         
         s = Label(f1, text="Hold Time")
         s.grid(row=4, column=1)
-        s = Entry(f1, textvariable = self.hold_time)
+        s = Entry(f1, textvariable=self.hold_time)
         s.grid(row=4, column=2)
         s = Label(f1, text="s")
         s.grid(row=4, column=3)
         
         s = Label(f1, text="Compliance")
         s.grid(row=5, column=1)
-        s = Entry(f1, textvariable = self.compliance)
+        s = Entry(f1, textvariable=self.compliance)
         s.grid(row=5, column=2)
         compliance_choices = {'mA', 'uA', 'nA'}
         self.compliance_scale.set('uA')
@@ -460,7 +460,7 @@ class GuiPart:
         self.recipients.set("adapbot@gmail.com")
         s = Label(f1, text="Email data to:")
         s.grid(row=6, column=1)
-        s = Entry(f1, textvariable = self.recipients)
+        s = Entry(f1, textvariable=self.recipients)
         s.grid(row=6, column=2)
     
         source_choices = {'Keithley 2400', 'Keithley 2657a'}
@@ -479,7 +479,7 @@ class GuiPart:
         self.timer.grid(row=12, column=2)
         
         self.pb = ttk.Progressbar(f1, orient="horizontal", length=200, mode="determinate")
-        self.pb.grid(row=11, column= 2, columnspan=5)
+        self.pb.grid(row=11, column=2, columnspan=5)
         self.pb["maximum"] = 100
         self.pb["value"] = 0
         
@@ -489,9 +489,9 @@ class GuiPart:
         self.a.set_xlabel("Voltage")
         self.a.set_ylabel("Current")
 
-        #plt.xlabel("Voltage")
-        #plt.ylabel("Current")
-        #plt.title("IV")
+        # plt.xlabel("Voltage")
+        # plt.ylabel("Current")
+        # plt.title("IV")
         self.canvas.draw()
         
         s = Button(f1, text="Start IV", command=self.prepare_values)
@@ -511,13 +511,13 @@ class GuiPart:
         if "Windows" in platform.platform():
             s = Label(f2, text="File name")
             s.grid(row=0, column=1)
-            s = Entry(f2, textvariable = self.cv_filename)
+            s = Entry(f2, textvariable=self.cv_filename)
             s.grid(row=0, column=2)
         
         self.cv_start_volt.set("0.0")
         s = Label(f2, text="Start Volt")
         s.grid(row=1, column=1)
-        s = Entry(f2, textvariable = self.cv_start_volt)
+        s = Entry(f2, textvariable=self.cv_start_volt)
         s.grid(row=1, column=2)       
         s = Label(f2, text="V")
         s.grid(row=1, column=3)
@@ -525,7 +525,7 @@ class GuiPart:
         self.cv_end_volt.set("40.0")
         s = Label(f2, text="End Volt")
         s.grid(row=2, column=1)
-        s = Entry(f2, textvariable = self.cv_end_volt)
+        s = Entry(f2, textvariable=self.cv_end_volt)
         s.grid(row=2, column=2)
         s = Label(f2, text="V")
         s.grid(row=2, column=3)
@@ -533,7 +533,7 @@ class GuiPart:
         self.cv_step_volt.set("1.0")
         s = Label(f2, text="Step Volt")
         s.grid(row=3, column=1)
-        s = Entry(f2, textvariable = self.cv_step_volt)
+        s = Entry(f2, textvariable=self.cv_step_volt)
         s.grid(row=3, column=2)
         s = Label(f2, text="V")
         s.grid(row=3, column=3)
@@ -541,7 +541,7 @@ class GuiPart:
         self.cv_hold_time.set("1.0")
         s = Label(f2, text="Hold Time")
         s.grid(row=4, column=1)
-        s = Entry(f2, textvariable = self.cv_hold_time)
+        s = Entry(f2, textvariable=self.cv_hold_time)
         s.grid(row=4, column=2)
         s = Label(f2, text="s")
         s.grid(row=4, column=3)
@@ -549,7 +549,7 @@ class GuiPart:
         self.cv_compliance.set("1.0")
         s = Label(f2, text="Compliance")
         s.grid(row=5, column=1)
-        s = Entry(f2, textvariable = self.cv_compliance)
+        s = Entry(f2, textvariable=self.cv_compliance)
         s.grid(row=5, column=2)
         self.cv_compliance_scale.set('uA')
         s = OptionMenu(f2, self.cv_compliance_scale, *compliance_choices)
@@ -558,7 +558,7 @@ class GuiPart:
         self.cv_recipients.set("adapbot@gmail.com")
         s = Label(f2, text="Email data to:")
         s.grid(row=6, column=1)
-        s = Entry(f2, textvariable = self.cv_recipients)
+        s = Entry(f2, textvariable=self.cv_recipients)
         s.grid(row=6, column=2)
         
         s = Label(f2, text="Agilent LCRMeter Parameters", relief=RAISED)
@@ -567,9 +567,9 @@ class GuiPart:
         self.cv_impedance = StringVar()
         s = Label(f2, text="Function")
         s.grid(row=8, column=1)
-        function_choices = {"CPD", "CPQ",  "CPG",   "CPRP",  "CSD",  "CSQ", "CSRS",   "LPD",
+        function_choices = {"CPD", "CPQ", "CPG", "CPRP", "CSD", "CSQ", "CSRS", "LPD",
                  "LPQ", "LPG", "LPRP", "LPRD", "LSD", "LSQ", "LSRS", "LSRD",
-                 "RX", "ZTD", "ZTR", "GB",   "YTD", "YTR", "VDID"}
+                 "RX", "ZTD", "ZTR", "GB", "YTD", "YTR", "VDID"}
         self.cv_function_choice = StringVar()
         self.cv_function_choice.set('CPD')
         s = OptionMenu(f2, self.cv_function_choice, *function_choices)
@@ -578,7 +578,7 @@ class GuiPart:
         self.cv_impedance.set("2000")
         s = Label(f2, text="Impedance")
         s.grid(row=9, column=1)
-        s = Entry(f2, textvariable=self.cv_impedance )
+        s = Entry(f2, textvariable=self.cv_impedance)
         s.grid(row=9, column=2)
         s = Label(f2, text="Ω")
         s.grid(row=9, column=3)
@@ -586,7 +586,7 @@ class GuiPart:
         self.cv_frequencies.set("100, 200, 1000, 2000")
         s = Label(f2, text="Frequencies")
         s.grid(row=10, column=1)
-        s = Entry(f2, textvariable=self.cv_frequencies )
+        s = Entry(f2, textvariable=self.cv_frequencies)
         s.grid(row=10, column=2)
         s = Label(f2, text="Hz")
         s.grid(row=10, column=3)
@@ -594,7 +594,7 @@ class GuiPart:
         self.cv_amplitude.set("5.0")
         s = Label(f2, text="Signal Amplitude")
         s.grid(row=11, column=1)
-        s = Entry(f2, textvariable=self.cv_amplitude )
+        s = Entry(f2, textvariable=self.cv_amplitude)
         s.grid(row=11, column=2)
         s = Label(f2, text="V")
         s.grid(row=11, column=3)
@@ -614,7 +614,7 @@ class GuiPart:
         s.grid(row=14, column=1)
         
         self.cv_pb = ttk.Progressbar(f2, orient="horizontal", length=200, mode="determinate")
-        self.cv_pb.grid(row=14, column= 2, columnspan=5)
+        self.cv_pb.grid(row=14, column=2, columnspan=5)
         self.cv_pb["maximum"] = 100
         self.cv_pb["value"] = 0
         
@@ -645,7 +645,7 @@ class GuiPart:
                 (data, percent, timeremain) = self.outputdata.get(0)
                 
                 if self.type is 0:
-                    print "Percent done:" +str(percent)
+                    print "Percent done:" + str(percent)
                     self.pb["value"] = percent
                     self.pb.update()
                     (voltages, currents) = data
@@ -654,7 +654,7 @@ class GuiPart:
                         if v < 0:
                             negative = True
                     if negative:
-                        line,= self.a.plot(map(lambda x: x*-1.0, voltages), map(lambda x: x*-1.0, currents))
+                        line, = self.a.plot(map(lambda x: x * -1.0, voltages), map(lambda x: x * -1.0, currents))
                     else:
                         line, = self.a.plot(voltages, currents)
                     line.set_antialiased(True)
@@ -664,19 +664,19 @@ class GuiPart:
                     self.a.set_ylabel("Current [A]")
                     self.canvas.draw()
 
-                    timetext = str(time.asctime(time.localtime(time.time()+timeremain)))
+                    timetext = str(time.asctime(time.localtime(time.time() + timeremain)))
                     self.timer = Label(self.f1, text=timetext)
                     self.timer.grid(row=12, column=2)
                     
                     
                 elif self.type is 1:
                     (voltages, caps) = data
-                    print "Percent done:" +str(percent)
+                    print "Percent done:" + str(percent)
                     self.cv_pb["value"] = percent
                     self.cv_pb.update()
-                    #print "Caps:+++++++"
-                    #print caps
-                    #print "============="
+                    # print "Caps:+++++++"
+                    # print caps
+                    # print "============="
                     colors = {0:'b', 1:'g', 2:'r', 3:'c', 4:'m', 5:'k'}
                     i = 0
                     for c in caps:
@@ -692,7 +692,7 @@ class GuiPart:
                         """
                         
                         if self.first:
-                            line, = self.cv_a.plot(voltages, c, label=(self.cv_frequencies.get().split(",")[i]+"Hz"))
+                            line, = self.cv_a.plot(voltages, c, label=(self.cv_frequencies.get().split(",")[i] + "Hz"))
                             self.cv_a.legend()
                         else:
                             line, = self.cv_a.plot(voltages, c)
@@ -704,7 +704,7 @@ class GuiPart:
                         self.cv_a.set_ylabel("Capacitance [F]")
                         self.cv_canvas.draw()
                         
-                    timetext = str(time.asctime(time.localtime(time.time()+timeremain)))
+                    timetext = str(time.asctime(time.localtime(time.time() + timeremain)))
                     self.timer = Label(self.f2, text=timetext)
                     self.timer.grid(row=15, column=2)
                     
@@ -741,11 +741,11 @@ def getvalues(input_params, dataout):
             (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename) = input_params
     else:
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, thowaway) = input_params
-        filename = tkFileDialog.asksaveasfilename(initialdir = "/",title = "Save data",filetypes = (("Microsoft Excel file","*.xlsx"),("all files","*.*")))+".xlsx"
+        filename = tkFileDialog.asksaveasfilename(initialdir="/", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*"))) + ".xlsx"
     print "File done"
     
     try:
-        comp = float(float(compliance)*({'mA':1e-3, 'uA':1e-6, 'nA':1e-9}.get(compliance_scale, 1e-6)))
+        comp = float(float(compliance) * ({'mA':1e-3, 'uA':1e-6, 'nA':1e-9}.get(compliance_scale, 1e-6)))
         source_params = (int(float(start_volt)), int(float(end_volt)), (float(step_volt)),
                              float(hold_time), comp)
     except ValueError:
@@ -762,19 +762,19 @@ def getvalues(input_params, dataout):
     
     (v, i) = data
     values = []
-    for x in xrange(0,len(v), 1):
+    for x in xrange(0, len(v), 1):
         values.append((v[x], i[x]))
-    row=0
-    col=0
+    row = 0
+    col = 0
     
     chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
     
     for volt, cur in values:
         worksheet.write(row, col, volt)
-        worksheet.write(row, col+1, cur)
-        row+=1
+        worksheet.write(row, col + 1, cur)
+        row += 1
     
-    chart.add_series({'categories': '=Sheet1!$A$1:$A$'+str(row), 'values': '=Sheet1!$B$1:$B$'+str(row)})
+    chart.add_series({'categories': '=Sheet1!$A$1:$A$' + str(row), 'values': '=Sheet1!$B$1:$B$' + str(row)})
     chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
     chart.set_y_axis({'name':'Current [A]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
     chart.set_legend({'none':True})
@@ -798,10 +798,10 @@ def cv_getvalues(input_params, dataout):
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, frequencies, function, amplitude, impedance, integration, recipients, filename) = input_params
     else:
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, frequencies, function, amplitude, impedance, integration, recipients, thowaway) = input_params
-        filename = tkFileDialog.asksaveasfilename(initialdir = "/",title = "Save data",filetypes = (("Microsoft Excel file","*.xlsx"),("all files","*.*")))
+        filename = tkFileDialog.asksaveasfilename(initialdir="/", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*")))
     
     try:
-        comp = float(float(compliance)*({'mA':1e-3, 'uA':1e-6, 'nA':1e-9}.get(compliance_scale, 1e-6)))
+        comp = float(float(compliance) * ({'mA':1e-3, 'uA':1e-6, 'nA':1e-9}.get(compliance_scale, 1e-6)))
         params = (int(float(start_volt)), int(float(end_volt)), int(float(step_volt)),
                              float(hold_time), comp, frequencies, float(amplitude), function, int(impedance), {"Short":0, "Medium":1, "Long":2}.get(integration))
         print params
@@ -814,144 +814,144 @@ def cv_getvalues(input_params, dataout):
         data = GetCV(params, {"Keithley 2657a":1, "Keithley 2400":0}.get(source_choice), dataout)
     
     data_out = xlsxwriter.Workbook(filename)
-    path = filename+str(time.asctime(time.localtime(time.time())))+".xlsx"
+    path = filename + str(time.asctime(time.localtime(time.time()))) + ".xlsx"
     worksheet = data_out.add_worksheet()
     
     (v, i, c, r) = data
     
-    row=9
-    col=0
+    row = 9
+    col = 0
     
     chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
     worksheet.write(8, 0, "V")
     for volt in v:
         worksheet.write(row, col, volt)
-        row+=1
+        row += 1
     
-    col +=1
+    col += 1
     last_col = col
     for f in frequencies:
-        worksheet.write(7, col, "Freq="+f+"Hz")
-        col +=3
+        worksheet.write(7, col, "Freq=" + f + "Hz")
+        col += 3
         
     col = last_col
-    row=9
+    row = 9
     for frequency in i:
         worksheet.write(8, col, "I")
         row = 9
         for current in frequency:
             worksheet.write(row, col, current)
-            row+=1
-        col+=3
+            row += 1
+        col += 3
     
-    col = last_col+1
+    col = last_col + 1
     last_col = col
     for frequency in c:
         worksheet.write(8, col, "C")
-        row=9
+        row = 9
         for cap in frequency:
             worksheet.write(row, col, cap)
-            row+=1
-        col+=3
+            row += 1
+        col += 3
     
-    col = last_col+1
+    col = last_col + 1
     last_col = col
     
-    fs=0
+    fs = 0
     for frequency in r:
-        fs +=1
+        fs += 1
         worksheet.write(8, col, "R")
-        row=9
+        row = 9
         for res in frequency:
             worksheet.write(row, col, res)
-            row+=1
-        col+=3
-    row +=5
+            row += 1
+        col += 3
+    row += 5
     if fs >= 1:
         chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
-        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$B$10:$B$'+str(row), 'marker': {'type': 'star'}})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$' + str(row), 'values': '=Sheet1!$B$10:$B$' + str(row), 'marker': {'type': 'star'}})
         chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_y_axis({'name':'Current [A]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_legend({'none':True})
-        worksheet.insert_chart('D'+str(row), chart)
+        worksheet.insert_chart('D' + str(row), chart)
 
         chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
-        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$C$10:$C$'+str(row), 'marker': {'type': 'star'}})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$' + str(row), 'values': '=Sheet1!$C$10:$C$' + str(row), 'marker': {'type': 'star'}})
         chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_y_axis({'name':'Capacitance [F]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_legend({'none':True})
-        worksheet.insert_chart('D'+str(row+20), chart)
+        worksheet.insert_chart('D' + str(row + 20), chart)
         
         chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
-        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$D$10:$D$'+str(row), 'marker': {'type': 'star'}})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$' + str(row), 'values': '=Sheet1!$D$10:$D$' + str(row), 'marker': {'type': 'star'}})
         chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_y_axis({'name':'Resistance [R]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_legend({'none':True})
-        worksheet.insert_chart('D'+str(row+40), chart)
+        worksheet.insert_chart('D' + str(row + 40), chart)
         
     if fs >= 2:
         chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
-        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$E$10:$E$'+str(row), 'marker': {'type': 'star'}})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$' + str(row), 'values': '=Sheet1!$E$10:$E$' + str(row), 'marker': {'type': 'star'}})
         chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_y_axis({'name':'Current [A]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_legend({'none':True})
-        worksheet.insert_chart('L'+str(row), chart)
+        worksheet.insert_chart('L' + str(row), chart)
         chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
-        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$F$10:$F$'+str(row), 'marker': {'type': 'star'}})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$' + str(row), 'values': '=Sheet1!$F$10:$F$' + str(row), 'marker': {'type': 'star'}})
         chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_y_axis({'name':'Capacitance [C]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_legend({'none':True})
-        worksheet.insert_chart('L'+str(row+20), chart)
+        worksheet.insert_chart('L' + str(row + 20), chart)
         chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
-        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$G$10:$G$'+str(row), 'marker': {'type': 'star'}})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$' + str(row), 'values': '=Sheet1!$G$10:$G$' + str(row), 'marker': {'type': 'star'}})
         chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_y_axis({'name':'Resistance [R]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_legend({'none':True})
-        worksheet.insert_chart('L'+str(row+40), chart)
+        worksheet.insert_chart('L' + str(row + 40), chart)
         
     if fs >= 3:
         chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
-        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$H$10:$H$'+str(row), 'marker': {'type': 'star'}})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$' + str(row), 'values': '=Sheet1!$H$10:$H$' + str(row), 'marker': {'type': 'star'}})
         chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_y_axis({'name':'Current [A]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_legend({'none':True})
-        worksheet.insert_chart('T'+str(row), chart)
+        worksheet.insert_chart('T' + str(row), chart)
         
         chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
-        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$I$10:$I$'+str(row), 'marker': {'type': 'star'}})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$' + str(row), 'values': '=Sheet1!$I$10:$I$' + str(row), 'marker': {'type': 'star'}})
         chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_y_axis({'name':'Capacitance [C]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_legend({'none':True})
-        worksheet.insert_chart('T'+str(row+20), chart)
+        worksheet.insert_chart('T' + str(row + 20), chart)
     
         chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
-        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$J$10:$J$'+str(row), 'marker': {'type': 'star'}})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$' + str(row), 'values': '=Sheet1!$J$10:$J$' + str(row), 'marker': {'type': 'star'}})
         chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_y_axis({'name':'Resistance [R]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_legend({'none':True})
-        worksheet.insert_chart('T'+str(row+40), chart)
+        worksheet.insert_chart('T' + str(row + 40), chart)
     
     if fs >= 4:
         chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
-        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$K$10:$K$'+str(row), 'marker': {'type': 'star'}})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$' + str(row), 'values': '=Sheet1!$K$10:$K$' + str(row), 'marker': {'type': 'star'}})
         chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_y_axis({'name':'Current [A]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_legend({'none':True})
-        worksheet.insert_chart('AB'+str(row), chart)
+        worksheet.insert_chart('AB' + str(row), chart)
     
         chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
-        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$L$10:$L$'+str(row), 'marker': {'type': 'star'}})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$' + str(row), 'values': '=Sheet1!$L$10:$L$' + str(row), 'marker': {'type': 'star'}})
         chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_y_axis({'name':'Capacitance [C]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_legend({'none':True})
-        worksheet.insert_chart('AB'+str(row+20), chart)
+        worksheet.insert_chart('AB' + str(row + 20), chart)
     
         chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
-        chart.add_series({'categories': '=Sheet1!$A$10:$A$'+str(row), 'values': '=Sheet1!$M$10:$M$'+str(row), 'marker': {'type': 'star'}})
+        chart.add_series({'categories': '=Sheet1!$A$10:$A$' + str(row), 'values': '=Sheet1!$M$10:$M$' + str(row), 'marker': {'type': 'star'}})
         chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_y_axis({'name':'Resistance [R]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_legend({'none':True})
-        worksheet.insert_chart('AB'+str(row+40), chart)
+        worksheet.insert_chart('AB' + str(row + 40), chart)
     
     data_out.close()
     
@@ -987,7 +987,7 @@ class ThreadedProgram:
         self.measuring = False
     
     def periodicCall(self):
-        #print "Period"
+        # print "Period"
         self.gui.update()
         if not self.stopqueue.empty():
             print "quitting"
@@ -1000,11 +1000,11 @@ class ThreadedProgram:
     
     def workerThread1(self):
         while self.running:
-            #print "looping"
+            # print "looping"
             if self.inputdata.empty() is False and self.measuring is False:
-                self.measuring= True
+                self.measuring = True
                 print "doing stuff"
-                #print self.inputdata
+                # print self.inputdata
                 (params, type) = self.inputdata.get()
                 if type is 0:
                     getvalues(params, self.outputdata)
@@ -1012,8 +1012,8 @@ class ThreadedProgram:
                     cv_getvalues(params, self.outputdata)
                 else:
                     pass
-                    #spa_getvalues(params, self.outputdata)
-                self.measuring=False
+                    # spa_getvalues(params, self.outputdata)
+                self.measuring = False
     
     def endapp(self):
         self.running = 0
@@ -1030,7 +1030,7 @@ class test:
         
         keithley = 0
         
-        total_time = seconds+60*minutes+3600*hours
+        total_time = seconds + 60 * minutes + 3600 * hours
         start_time = time.time()
         
         if test:
@@ -1048,13 +1048,13 @@ class test:
         scaled = False
         
         if step_volt < 1.0:
-            start_volt *=1000
-            voltage_point *=1000
-            step_volt*=1000
+            start_volt *= 1000
+            voltage_point *= 1000
+            step_volt *= 1000
             scaled = True
         
-        if 0>voltage_point:
-            step_volt = -1*step_volt
+        if 0 > voltage_point:
+            step_volt = -1 * step_volt
             
         for volt in xrange(0, voltage_point, step_volt):
             
@@ -1063,29 +1063,29 @@ class test:
                 pass
             else:
                 if scaled:
-                    keithley.set_output(volt/1000.0)
+                    keithley.set_output(volt / 1000.0)
                 else:
                     keithley.set_output(volt)
                 
             time.sleep(hold_time)
             
             if test:
-                curr = (volt+randint(0, 10))*1e-9
+                curr = (volt + randint(0, 10)) * 1e-9
             else:
                 curr = keithley.get_current()
-            #curr = volt
+            # curr = volt
             
-            if abs(curr)>abs(compliance-50e-9):
+            if abs(curr) > abs(compliance - 50e-9):
                 badCount = badCount + 1        
             else:
                 badCount = 0    
             
-            if badCount>=5 :
+            if badCount >= 5 :
                 print "Compliance reached"
                 break
             
             if scaled:
-                last_volt = volt/1000.0
+                last_volt = volt / 1000.0
             else:
                 last_volt = volt
             
@@ -1100,19 +1100,19 @@ class test:
         print total_time
         
         start_time = time.time()
-        while(time.time()<start_time+total_time):
+        while(time.time() < start_time + total_time):
             time.sleep(20)
             
             dataout.put(((timestamps, currents), 0, total_time))
-            currents.append(randint(0, 10)*1e-9)
-            timestamps.append(time.time()-start_time)
+            currents.append(randint(0, 10) * 1e-9)
+            timestamps.append(time.time() - start_time)
             print "timestamprs"
             print timestamps
             print "currents"
             print currents  
         print "Finished"
     
-if __name__=="__main__":
+if __name__ == "__main__":
     """
     x = test()
     data = Queue.Queue()
