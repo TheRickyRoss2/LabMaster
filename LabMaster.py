@@ -37,7 +37,6 @@ def GetIV(sourceparam, sourcemeter, dataout):
     currents = []
     voltages = []
     keithley = 0
-    print "Meter" + str(sourcemeter)
     
     if test:
         pass
@@ -142,13 +141,13 @@ def GetCV(params, sourcemeter, dataout):
             keithley = Keithley2400()
         else:
             keithley = Keithley2657a()
-        keithley.configure_measurement()
     
     last_volt = 0
     
     (start_volt, end_volt, step_volt, delay_time, compliance,
      frequencies, level, function, impedance, int_time) = params
-    
+    keithley.configure_measurement(1, 0, compliance)
+
     if test:
         pass
     else:
@@ -414,7 +413,7 @@ class GuiPart:
         self.f2 = f2
         self.f3 = f3
         if "Windows" in platform.platform():
-            self.filename.set("iv_data.xlsx")
+            self.filename.set("iv_data")
             s = Label(f1, text="File name:")
             s.grid(row=0, column=1)
             s = Entry(f1, textvariable=self.filename)
@@ -506,7 +505,7 @@ class GuiPart:
          **********************************************************/
         """
         self.cv_filename = StringVar()
-        self.cv_filename.set("cv_data.xlsx")
+        self.cv_filename.set("cv_data")
         
         if "Windows" in platform.platform():
             s = Label(f2, text="File name")
@@ -739,9 +738,10 @@ class GuiPart:
 def getvalues(input_params, dataout):
     if "Windows" in platform.platform():
             (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename) = input_params
+            filename = ((filename+" "+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":","_")
     else:
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, thowaway) = input_params
-        filename = tkFileDialog.asksaveasfilename(initialdir="/", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*"))) + ".xlsx"
+        filename = tkFileDialog.asksaveasfilename(initialdir="/", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*"))) + str(time.asctime(time.localtime(time.time())))+".xlsx"
     print "File done"
     
     try:
@@ -1048,7 +1048,6 @@ class test:
         scaled = False
         
         if step_volt < 1.0:
-            start_volt *= 1000
             voltage_point *= 1000
             step_volt *= 1000
             scaled = True
