@@ -23,7 +23,7 @@ import xlsxwriter
 import Queue
 import random
 
-test = True
+debug = False
 rm = visa.ResourceManager()
 print(rm.list_resources())
 # inst = rm.open_resource(rm.list_resources()[0])
@@ -38,7 +38,7 @@ def GetIV(sourceparam, sourcemeter, dataout):
     voltages = []
     keithley = 0
     
-    if test:
+    if debug:
         pass
     else:
         if sourcemeter is 0:
@@ -65,7 +65,7 @@ def GetIV(sourceparam, sourcemeter, dataout):
         start_time = time.time()
         
         curr = 0
-        if test:
+        if debug:
             pass
         else:
             if scaled:
@@ -75,12 +75,12 @@ def GetIV(sourceparam, sourcemeter, dataout):
         
         time.sleep(delay_time)
         
-        if test:
+        if debug:
             curr = (volt + randint(0, 10)) * 1e-9
         else:
             curr = keithley.get_current()
         # curr = volt
-        
+        time.sleep(1)
         if abs(curr) > abs(compliance - 50e-9):
             badCount = badCount + 1        
         else:
@@ -107,7 +107,7 @@ def GetIV(sourceparam, sourcemeter, dataout):
         
         
     while abs(last_volt) > 5:
-        if test:
+        if debug:
             pass
         else:
             keithley.set_output(last_volt)
@@ -117,9 +117,9 @@ def GetIV(sourceparam, sourcemeter, dataout):
             last_volt += 5
         else:
             last_volt -= 5
-
+    
     time.sleep(0.5)
-    if test:
+    if debug:
         pass
     else:
         keithley.set_output(0)
@@ -134,7 +134,7 @@ def GetCV(params, sourcemeter, dataout):
     c = []
     keithley = 0
     
-    if test:
+    if debug:
         pass
     else:
         if sourcemeter is 0:
@@ -147,8 +147,8 @@ def GetCV(params, sourcemeter, dataout):
     (start_volt, end_volt, step_volt, delay_time, compliance,
      frequencies, level, function, impedance, int_time) = params
     keithley.configure_measurement(1, 0, compliance)
-
-    if test:
+    
+    if debug:
         pass
     else:
         agilent = AgilentE4980a()
@@ -172,7 +172,7 @@ def GetCV(params, sourcemeter, dataout):
     for volt in xrange(start_volt, end_volt, step_volt):
     
         start_time = time.time()
-        if test:
+        if debug:
             pass
         else:
             if scaled:
@@ -184,7 +184,7 @@ def GetCV(params, sourcemeter, dataout):
         for f in frequencies:
             time.sleep(delay_time)
 
-            if test:
+            if debug:
                 capacitance.append((volt + int(f) * randint(0, 10)))
                 curr = volt * 1e-10
                 c.append(curr)
@@ -227,7 +227,7 @@ def GetCV(params, sourcemeter, dataout):
         last_volt = volt
         # graph point here
         
-    if test:
+    if debug:
         pass
     else:
         while last_volt > 0:
@@ -240,7 +240,7 @@ def GetCV(params, sourcemeter, dataout):
                 
             time.sleep(0.5)
     
-    if test:
+    if debug:
         pass
     else:
         keithley.enable_output(False)
@@ -250,7 +250,7 @@ def GetCV(params, sourcemeter, dataout):
 
 def spa_iv(params, dataout):
     (start_volt, end_volt, step_volt, hold_time, compliance, int_time) = params
-
+    
     print params
     voltage_smua = []
     current_smua = []
@@ -260,14 +260,14 @@ def spa_iv(params, dataout):
     current_smu3 = []
     current_smu4 = []
     voltage_vmu1 = []
-
+    
     voltage_source = Keithley2657a()
     voltage_source.configure_measurement(1, 0, compliance)
     voltage_source.enable_output(True)
     
     daq = Agilent4156()
     daq.configure_integration_time(_int_time=int_time)
-
+    
     scaled = False
     if step_volt < 1.0:
         start_volt *= 1000
@@ -285,7 +285,7 @@ def spa_iv(params, dataout):
     last_volt = 0
     for volt in xrange(start_volt, end_volt, step_volt):
 
-        if test:
+        if debug:
             pass
         else:
             if scaled:
@@ -336,7 +336,7 @@ def spa_iv(params, dataout):
     while abs(last_volt) >= 4:
         time.sleep(0.5)
 
-        if test:
+        if debug:
             pass
         else:
             voltage_source.set_output(last_volt)
@@ -354,11 +354,6 @@ def spa_iv(params, dataout):
     
 
 
-# TODO: Implement multiple IV's repeat and generate plots as it goes
-
-def mult_IV(sourceparam, sourcemeter, dataout):
-    pass
-
 # TODO: current monitor bugfixes and fifo implementation
 def current_monitoring(source_params, sourcemeter, dataout):
         
@@ -373,7 +368,7 @@ def current_monitoring(source_params, sourcemeter, dataout):
     total_time = seconds + 60 * minutes + 3600 * hours
     start_time = time.time()
         
-    if test:
+    if debug:
         pass
     else:
         if sourcemeter is 0:
@@ -398,7 +393,7 @@ def current_monitoring(source_params, sourcemeter, dataout):
     for volt in xrange(0, voltage_point, step_volt):
             
         curr = 0
-        if test:
+        if debug:
             pass
         else:
             if scaled:
@@ -408,7 +403,7 @@ def current_monitoring(source_params, sourcemeter, dataout):
                 
         time.sleep(hold_time)
             
-        if test:
+        if debug:
             curr = (volt + randint(0, 10)) * 1e-9
         else:
             curr = keithley.get_current()
@@ -450,7 +445,6 @@ def current_monitoring(source_params, sourcemeter, dataout):
         print "currents"
         print currents  
     print "Finished"
-  
 
 class GuiPart:
     
@@ -507,7 +501,7 @@ class GuiPart:
         self.f5 = ttk.Frame(n)
         n.add(self.f1, text='Basic IV')
         n.add(self.f2, text='CV')
-        n.add(self.f3, text='Param Anal IV ')
+        n.add(self.f3, text='Param Analyzer IV ')
         n.add(self.f4, text='Multiple IV')
         n.add(self.f5, text='Current Monitor')
 
@@ -679,7 +673,7 @@ class GuiPart:
         s = Entry(self.f2, textvariable=self.cv_impedance)
         s.grid(row=9, column=2)
         s = Label(self.f2, text="Ω")
-        s.grid(row=9, column=3)
+        s.grid(row=9, column=3) 
         
         self.cv_frequencies.set("100, 200, 1000, 2000")
         s = Label(self.f2, text="Frequencies")
@@ -806,7 +800,36 @@ class GuiPart:
                     self.timer = Label(self.f2, text=timetext)
                     self.timer.grid(row=15, column=2)
                     
+                elif self.type is 2:
+                    pass
+                
+                elif self.type is 3:
+                    print "Percent done:" + str(percent)
+                    self.multiv_pb["value"] = percent
+                    self.multiv_pb.update()
+                    (voltages, currents) = data
+                    negative = False
+                    for v in voltages:
+                        if v < 0:
+                            negative = True
+                    if negative:
+                        line, = self.multiv_a.plot(map(lambda x: x * -1.0, voltages), map(lambda x: x * -1.0, currents))
+                    else:
+                        line, = self.multiv_a.plot(voltages, currents)
+                    line.set_antialiased(True)
+                    line.set_color('r')
+                    self.multiv_a.set_title("IV")
+                    self.multiv_a.set_xlabel("Voltage [V]")
+                    self.multiv_a.set_ylabel("Current [A]")
+                    self.multiv_canvas.draw()
+
+                    timetext = str(time.asctime(time.localtime(time.time() + timeremain)))
+                    self.multiv_timer = Label(self.f4, text=timetext)
+                    self.multiv_timer.grid(row=12, column=2)
+                    
+                    
                 self.first = False
+                
             except Queue.Empty:
                 pass
                 
@@ -833,14 +856,24 @@ class GuiPart:
         self.cv_f.clf()
         self.cv_a = self.cv_f.add_subplot(111)
         self.type = 1
+        
+    def multiv_prepare_values(self):
+        
+        print "preparing mult iv values"
+        
+        input_params = ((self.multiv_compliance.get(), self.multiv_compliance_scale.get(), self.multiv_start_volt.get(), self.multiv_end_volt.get(), self.multiv_step_volt.get(), self.multiv_hold_time.get(), self.multiv_source_choice.get(), self.multiv_recipients.get(), self.multiv_filename.get()), 0)
+        self.inputdata.put(input_params)   
+        self.multiv_f.clf()        
+        self.multiv_a = self.f.add_subplot(111)
+        self.type = 2
     
 def getvalues(input_params, dataout):
     if "Windows" in platform.platform():
             (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename) = input_params
-            filename = ((filename+" "+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":","_")
+            filename = ((filename+"_"+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":","_")
     else:
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, thowaway) = input_params
-        filename = tkFileDialog.asksaveasfilename(initialdir="/", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*"))) + str(time.asctime(time.localtime(time.time())))+".xlsx"
+        filename = tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*"))) +"_"+ str(time.asctime(time.localtime(time.time())))+".xlsx"
     print "File done"
     
     try:
@@ -853,7 +886,12 @@ def getvalues(input_params, dataout):
     if source_params is None:
         pass
     else:
-        data = GetIV(source_params, {"Keithley 2675a":1, "Keithley 2400":0}.get(source_choice, 0), dataout)
+        print source_choice
+        choice = 0
+        if "2657a" in source_choice:
+            print "asdf keithley 366"
+            choice = 1
+        data = GetIV(source_params, choice, dataout)
             
     data_out = xlsxwriter.Workbook(filename)
     path = filename
@@ -861,6 +899,7 @@ def getvalues(input_params, dataout):
     
     (v, i) = data
     values = []
+    pos = v[0]>v[1]
     for x in xrange(0, len(v), 1):
         values.append((v[x], i[x]))
     row = 0
@@ -874,8 +913,8 @@ def getvalues(input_params, dataout):
         row += 1
     
     chart.add_series({'categories': '=Sheet1!$A$1:$A$' + str(row), 'values': '=Sheet1!$B$1:$B$' + str(row)})
-    chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
-    chart.set_y_axis({'name':'Current [A]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
+    chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}, 'reverse':pos})
+    chart.set_y_axis({'name':'Current [A]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}, 'reverse':pos})
     chart.set_legend({'none':True})
     worksheet.insert_chart('D2', chart)
     data_out.close()
@@ -897,7 +936,7 @@ def cv_getvalues(input_params, dataout):
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, frequencies, function, amplitude, impedance, integration, recipients, filename) = input_params
     else:
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, frequencies, function, amplitude, impedance, integration, recipients, thowaway) = input_params
-        filename = tkFileDialog.asksaveasfilename(initialdir="/", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*")))
+        filename = tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*")))
     
     try:
         comp = float(float(compliance) * ({'mA':1e-3, 'uA':1e-6, 'nA':1e-9}.get(compliance_scale, 1e-6)))
@@ -1071,9 +1110,74 @@ def spa_getvalues(input_params, dataout):
     pass
 
 # TODO: Implement value parsing from gui
-def mult_IV_getvalues(input_params, dataout):
-    pass
-
+def multiv_getvalues(input_params, dataout):
+    if "Windows" in platform.platform():
+            (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename, times) = input_params
+            filename = ((filename+"_"+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":","_")
+    else:
+        (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, thowaway, times) = input_params
+        filename = tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*"))) +"_"+ str(time.asctime(time.localtime(time.time())))+".xlsx"
+    print "File done"
+    
+    try:
+        comp = float(float(compliance) * ({'mA':1e-3, 'uA':1e-6, 'nA':1e-9}.get(compliance_scale, 1e-6)))
+        source_params = (int(float(start_volt)), int(float(end_volt)), (float(step_volt)),
+                             float(hold_time), comp)
+    except ValueError:
+        print "Please fill in all fields!"
+    data = ()
+    
+    while times>0:
+        
+        if source_params is None:
+            pass
+        else:
+            print source_choice
+            choice = 0
+            if "2657a" in source_choice:
+                print "asdf keithley 366"
+                choice = 1
+            data = GetIV(source_params, choice, dataout)
+        
+        data_out = xlsxwriter.Workbook(filename)
+        path = filename
+        worksheet = data_out.add_worksheet()
+        
+        (v, i) = data
+        values = []
+        pos = v[0]>v[1]
+        for x in xrange(0, len(v), 1):
+            values.append((v[x], i[x]))
+        row = 0
+        col = 0
+        
+        chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
+        
+        for volt, cur in values:
+            worksheet.write(row, col, volt)
+            worksheet.write(row, col + 1, cur)
+            row += 1
+        
+        chart.add_series({'categories': '=Sheet1!$A$1:$A$' + str(row), 'values': '=Sheet1!$B$1:$B$' + str(row)})
+        chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}, 'reverse':pos})
+        chart.set_y_axis({'name':'Current [A]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}, 'reverse':pos})
+        chart.set_legend({'none':True})
+        worksheet.insert_chart('D2', chart)
+        data_out.close()
+        
+        try:
+            mails = recipients.split(",")
+            sentTo = []
+            for mailee in mails:
+                sentTo.append(mailee.strip())
+        
+            print sentTo
+            sendMail(path, sentTo)
+        except:
+            pass
+        times-=1
+    
+    
 # TODO: Implement value parsing from gui
 def current_monitoring_getvalues(input_params, dataout):
     pass
@@ -1120,6 +1224,10 @@ class ThreadedProgram:
                     getvalues(params, self.outputdata)
                 elif type is 1:
                     cv_getvalues(params, self.outputdata)
+                elif type is 2:
+                    spa_getvalues(params, self.outputdata)
+                elif type is 3:
+                    multiv_getvalues(params, self.outputdata)
                 else:
                     pass
                     # spa_getvalues(params, self.outputdata)
@@ -1138,6 +1246,6 @@ if __name__ == "__main__":
     """
     root = Tk()
     root.geometry('800x800')
-    root.title('Adap')
+    root.title('LabMaster')
     client = ThreadedProgram(root)
     root.mainloop() 

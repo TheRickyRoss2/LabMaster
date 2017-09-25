@@ -93,25 +93,22 @@ class Keithley2657a(object):
         
         rm = visa.ResourceManager()
         self.inst = 0
-        print "wtf"
-        print rm.list_resources()
-        """
+        
         for x in rm.list_resources():
-            if str(self.gpib_addr) in x:
+            if str(self.gpib_addr) in str(x):
                 print x
                 print "Keithley Found"
                 self.inst = rm.open_resource(x)
             else:
                 print "Keithley not found\nPlease check GPIB Address"
                 exit()
-                
-        """
+        
+        
         print "Initializing Keithley 2657A"
-
-        print self.inst.query("*IDN?")
-        self.inst.write("reset()")
-        self.inst.write("errorqueue.clear() localnode.prompts = 0 localnode.showerrors = 0")
-        print self.inst.query("print(errorqueue.next())")
+        
+        #print self.inst.query("*IDN?")
+        self.inst.write("smua.reset()")
+        #self.inst.write("print(errorqueue.next())")
         self.inst.write("display.smua.measure.func = display.MEASURE_DCAMPS")
         self.inst.timeout = 10000
         self.__reset_smu()

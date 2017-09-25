@@ -120,7 +120,7 @@ class Agilent4156(object):
 
 class AgilentE4980a(object):
     
-    def init(self, gpib=19):
+    def __init__(self, gpib=19):
         """Set up gpib controller for device"""
         
         assert(gpib >= 0), "Please enter a valid gpib address"
@@ -181,3 +181,9 @@ class AgilentE4980a(object):
         self.initiate()
         return self.__fetch_data()
         
+    # TODO: CV Correction calculations
+    def correction(self):
+        self.inst.write(":CORR:LENG 1;")
+        self.inst.write(":CORR:LOAD:STAT ON")
+        self.inst.write(":CORR:LOAD:TYPE "+func)
+        self.inst.write(":CORR:METH SING")
