@@ -198,7 +198,6 @@ def GetCV(params, sourcemeter, dataout):
                 p2.append(aux)
                 curr = keithley.get_current()
                 c.append(curr)
-        
             
         if abs(curr) > abs(compliance - 50e-9):
             badCount = badCount + 1        
@@ -247,7 +246,6 @@ def GetCV(params, sourcemeter, dataout):
     else:
         keithley.enable_output(False)
     
-    
     return (voltages, currents, formatted_cap, parameter2)
 
 def spa_iv(params, dataout):
@@ -279,14 +277,14 @@ def spa_iv(params, dataout):
     
     if start_volt > end_volt:
         step_volt = -1 * step_volt
-        
+    
     for i in xrange(0, 4, 1):
         daq.configure_channel(i)  
     daq.configure_vmu()    
-          
+    
     last_volt = 0
     for volt in xrange(start_volt, end_volt, step_volt):
-
+        
         if debug:
             pass
         else:
@@ -309,7 +307,6 @@ def spa_iv(params, dataout):
         current_smu2.append(daq.read_trace_data("I2"))
         
         # daq.inst.write(":PAGE:DISP:LIST \'@TIME\', \'I2\', \'I3\'")
-      
 
         current_smu3.append(daq.read_trace_data("I3"))
         current_smu4.append(daq.read_trace_data("I4"))
@@ -348,28 +345,21 @@ def spa_iv(params, dataout):
         else:
             last_volt -= 5
         
-
     time.sleep(0.5)
     voltage_source.set_output(0)
     voltage_source.enable_output(False)
     return(voltage_smua, current_smua, current_smu1, current_smu2, current_smu3, current_smu4, voltage_vmu1)
-    
-
 
 # TODO: current monitor bugfixes and fifo implementation
 def current_monitoring(source_params, sourcemeter, dataout):
         
-    (voltage_point, step_volt, hold_time, compliance, hours, minutes, seconds) = source_params
-      
+    (voltage_point, step_volt, hold_time, compliance, minutes) = source_params
+    
     currents = []
     timestamps = []
     voltages = []
-        
-    keithley = 0
-        
-    total_time = seconds + 60 * minutes + 3600 * hours
-    start_time = time.time()
-        
+    
+    keithley=0
     if debug:
         pass
     else:
@@ -410,7 +400,7 @@ def current_monitoring(source_params, sourcemeter, dataout):
         else:
             curr = keithley.get_current()
         # curr = volt
-          
+        
         if abs(curr) > abs(compliance - 50e-9):
             badCount = badCount + 1        
         else:
@@ -440,14 +430,17 @@ def current_monitoring(source_params, sourcemeter, dataout):
         time.sleep(20)
             
         dataout.put(((timestamps, currents), 0, total_time))
-        currents.append(randint(0, 10) * 1e-9)
+        if debug:
+            currents.append(randint(0, 10) * 1e-9)
+        else:
+            currents.append(keithley.get_current())
         timestamps.append(time.time() - start_time)
         print "timestamprs"
         print timestamps
         print "currents"
         print currents  
     print "Finished"
-
+    
 class GuiPart:
     
     def __init__(self, master, inputdata, outputdata, stopq):
@@ -491,6 +484,18 @@ class GuiPart:
         self.multiv_compliance_scale = StringVar()
         self.multiv_source_choice = StringVar()
         self.multiv_filename = StringVar()
+        self.multiv_times = StringVar()
+        
+        self.curmon_start_volt = StringVar()
+        self.curmon_end_volt = StringVar()
+        self.curmon_step_volt = StringVar()
+        self.curmon_hold_time = StringVar()
+        self.curmon_compliance = StringVar() 
+        self.curmon_recipients = StringVar()   
+        self.curmon_compliance_scale = StringVar()
+        self.curmon_source_choice = StringVar()
+        self.curmon_filename = StringVar()
+        self.curmon_time = StringVar()
         
         """
         IV GUI
@@ -509,7 +514,10 @@ class GuiPart:
         self.cv_a = self.cv_f.add_subplot(111)
         
         self.multiv_f = plt.figure(figsize=(6, 4), dpi=60)
-        self.multiv_a = self.cv_f.add_subplot(111)
+        self.multiv_a = self.multiv_f.add_subplot(111)
+        
+        self.curmon_f = plt.figure(figsize=(6, 4), dpi=60)
+        self.curmon_a = self.curmon_f.add_subplot(111)
         
         n = ttk.Notebook(root, width=800)
         n.grid(row=0, column=0, columnspan=100, rowspan=100, sticky='NESW')
@@ -781,27 +789,32 @@ class GuiPart:
         s.grid(row=3, column=2)
         s = Label(self.f4, text="V")
         s.grid(row=3, column=3)
+
+        s = Label(self.f4, text="Repeat Times")
+        s.grid(row=4, column=1)
+        s = Entry(self.f4, textvariable=self.multiv_times)
+        s.grid(row=4, column=2)
         
         s = Label(self.f4, text="Hold Time")
-        s.grid(row=4, column=1)
+        s.grid(row=5, column=1)
         s = Entry(self.f4, textvariable=self.multiv_hold_time)
-        s.grid(row=4, column=2)
+        s.grid(row=5, column=2)
         s = Label(self.f4, text="s")
-        s.grid(row=4, column=3)
+        s.grid(row=5, column=3)
         
         s = Label(self.f4, text="Compliance")
-        s.grid(row=5, column=1)
+        s.grid(row=6, column=1)
         s = Entry(self.f4, textvariable=self.multiv_compliance)
-        s.grid(row=5, column=2)
+        s.grid(row=6, column=2)
         self.multiv_compliance_scale.set('uA')
         s = OptionMenu(self.f4, self.multiv_compliance_scale, *compliance_choices)
-        s.grid(row=5, column=3)
+        s.grid(row=6, column=3)
         
         self.multiv_recipients.set("adapbot@gmail.com")
         s = Label(self.f4, text="Email data to:")
-        s.grid(row=6, column=1)
+        s.grid(row=7, column=1)
         s = Entry(self.f4, textvariable=self.multiv_recipients)
-        s.grid(row=6, column=2)
+        s.grid(row=7, column=2)
     
         source_choices = {'Keithley 2400', 'Keithley 2657a'}
         self.multiv_source_choice.set('Keithley 2657a')
@@ -823,18 +836,113 @@ class GuiPart:
         self.multiv_pb["value"] = 0
         
         self.multiv_canvas = FigureCanvasTkAgg(self.multiv_f, master=self.f4)
-        self.multiv_canvas.get_tk_widget().grid(row=7, columnspan=10)
+        self.multiv_canvas.get_tk_widget().grid(row=8, columnspan=10)
         self.multiv_a.set_title("IV")
         self.multiv_a.set_xlabel("Voltage")
         self.multiv_a.set_ylabel("Current")
 
         self.multiv_canvas.draw()
         
-        s = Button(self.f4, text="Start IVs", command=self.prepare_values)
+        s = Button(self.f4, text="Start IVs", command=self.multiv_prepare_values)
         s.grid(row=3, column=7)
         
         s = Button(self.f4, text="Stop", command=self.quit)
         s.grid(row=4, column=7)
+        
+        """
+        Current Monitor IV
+        """
+        
+        
+        if "Windows" in platform.platform():
+            self.curmon_filename.set("iv_data")
+            s = Label(self.f5, text="File name:")
+            s.grid(row=0, column=1)
+            s = Entry(self.f5, textvariable=self.curmon_filename)
+            s.grid(row=0, column=2)
+        
+        s = Label(self.f5, text="Start Volt")
+        s.grid(row=1, column=1)
+        s = Entry(self.f5, textvariable=self.curmon_start_volt)
+        s.grid(row=1, column=2)
+        s = Label(self.f5, text="V")
+        s.grid(row=1, column=3)
+        
+        s = Label(self.f5, text="End Volt")
+        s.grid(row=2, column=1)
+        s = Entry(self.f5, textvariable=self.curmon_end_volt)
+        s.grid(row=2, column=2)
+        s = Label(self.f5, text="V")
+        s.grid(row=2, column=3)
+        
+        s = Label(self.f5, text="Step Volt")
+        s.grid(row=3, column=1)
+        s = Entry(self.f5, textvariable=self.curmon_step_volt)
+        s.grid(row=3, column=2)
+        s = Label(self.f5, text="V")
+        s.grid(row=3, column=3)
+
+        s = Label(self.f5, text="Test Time")
+        s.grid(row=4, column=1)
+        s = Entry(self.f5, textvariable=self.curmon_time)
+        s.grid(row=4, column=2)
+        s = Label(self.f5, text="M")
+        s.grid(row=4, column=3)
+        
+        s = Label(self.f5, text="Hold Time")
+        s.grid(row=5, column=1)
+        s = Entry(self.f5, textvariable=self.curmon_hold_time)
+        s.grid(row=5, column=2)
+        s = Label(self.f5, text="s")
+        s.grid(row=5, column=3)
+        
+        s = Label(self.f5, text="Compliance")
+        s.grid(row=6, column=1)
+        s = Entry(self.f5, textvariable=self.curmon_compliance)
+        s.grid(row=6, column=2)
+        self.curmon_compliance_scale.set('uA')
+        s = OptionMenu(self.f5, self.curmon_compliance_scale, *compliance_choices)
+        s.grid(row=6, column=3)
+        
+        self.curmon_recipients.set("adapbot@gmail.com")
+        s = Label(self.f5, text="Email data to:")
+        s.grid(row=7, column=1)
+        s = Entry(self.f5, textvariable=self.curmon_recipients)
+        s.grid(row=7, column=2)
+    
+        source_choices = {'Keithley 2400', 'Keithley 2657a'}
+        self.curmon_source_choice.set('Keithley 2657a')
+        s = OptionMenu(self.f5, self.curmon_source_choice, *source_choices)
+        s.grid(row=0, column=7)
+        
+        s = Label(self.f5, text="Progress:")
+        s.grid(row=11, column=1)
+       
+        s = Label(self.f5, text="Est finish at:")
+        s.grid(row=12, column=1)
+        
+        self.curmon_timer = Label(self.f5, text=timetext)
+        self.curmon_timer.grid(row=12, column=2)
+        
+        self.curmon_pb = ttk.Progressbar(self.f5, orient="horizontal", length=200, mode="determinate")
+        self.curmon_pb.grid(row=11, column=2, columnspan=5)
+        self.curmon_pb["maximum"] = 100
+        self.curmon_pb["value"] = 0
+        
+        self.curmon_canvas = FigureCanvasTkAgg(self.curmon_f, master=self.f5)
+        self.curmon_canvas.get_tk_widget().grid(row=8, columnspan=10)
+        self.curmon_a.set_title("IV")
+        self.curmon_a.set_xlabel("Voltage")
+        self.curmon_a.set_ylabel("Current")
+
+        self.curmon_canvas.draw()
+        
+        s = Button(self.f5, text="Start IVs", command=self.curmon_prepare_values)
+        s.grid(row=3, column=7)
+        
+        s = Button(self.f5, text="Stop", command=self.quit)
+        s.grid(row=4, column=7)
+        
         
         
     def update(self):
@@ -890,6 +998,7 @@ class GuiPart:
                         """
                         
                         if self.first:
+                            
                             line, = self.cv_a.plot(voltages, c, label=(self.cv_frequencies.get().split(",")[i] + "Hz"))
                             self.cv_a.legend()
                         else:
@@ -910,6 +1019,9 @@ class GuiPart:
                     pass
                 
                 elif self.type is 3:
+                    if self.first:
+                        #self.multiv_f.clf()
+                        pass
                     print "Percent done:" + str(percent)
                     self.multiv_pb["value"] = percent
                     self.multiv_pb.update()
@@ -966,13 +1078,23 @@ class GuiPart:
     def multiv_prepare_values(self):
         
         print "preparing mult iv values"
-        
-        input_params = ((self.multiv_compliance.get(), self.multiv_compliance_scale.get(), self.multiv_start_volt.get(), self.multiv_end_volt.get(), self.multiv_step_volt.get(), self.multiv_hold_time.get(), self.multiv_source_choice.get(), self.multiv_recipients.get(), self.multiv_filename.get()), 0)
+        self.first = True
+        input_params = ((self.multiv_compliance.get(), self.multiv_compliance_scale.get(), self.multiv_start_volt.get(), self.multiv_end_volt.get(), self.multiv_step_volt.get(), self.multiv_hold_time.get(), self.multiv_source_choice.get(), self.multiv_recipients.get(), self.multiv_filename.get(), self.multiv_times.get()), 3)
         self.inputdata.put(input_params)   
         self.multiv_f.clf()        
-        self.multiv_a = self.f.add_subplot(111)
-        self.type = 2
+        self.multiv_a = self.multiv_f.add_subplot(111)
+        self.type = 3
     
+    def curmon_prepare_values(self):
+        
+        print "preparing current monitor values"
+        self.first = True
+        input_params = ((self.curmon_compliance.get(), self.curmon_compliance_scale.get(), self.curmon_start_volt.get(), self.curmon_end_volt.get(), self.curmon_step_volt.get(), self.curmon_hold_time.get(), self.curmon_source_choice.get(), self.curmon_recipients.get(), self.curmon_filename.get(), self.curmon_time.get()), 4)
+        self.inputdata.put(input_params)   
+        self.curmon_f.clf()        
+        self.curmon_a = self.curmon_f.add_subplot(111)
+        self.type = 4
+        
 def getvalues(input_params, dataout):
     if "Windows" in platform.platform():
             (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename) = input_params
@@ -1218,23 +1340,25 @@ def spa_getvalues(input_params, dataout):
 # TODO: Implement value parsing from gui
 def multiv_getvalues(input_params, dataout):
     if "Windows" in platform.platform():
-            (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename, times) = input_params
+            (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename, times_str) = input_params
             filename = ((filename+"_"+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":","_")
     else:
-        (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, thowaway, times) = input_params
-        filename = tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*"))) +"_"+ str(time.asctime(time.localtime(time.time())))+".xlsx"
+        (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, thowaway, times_str) = input_params
+        filename = tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*")))
     print "File done"
     
     try:
         comp = float(float(compliance) * ({'mA':1e-3, 'uA':1e-6, 'nA':1e-9}.get(compliance_scale, 1e-6)))
         source_params = (int(float(start_volt)), int(float(end_volt)), (float(step_volt)),
                              float(hold_time), comp)
+        times = int(times_str)
+        
     except ValueError:
         print "Please fill in all fields!"
     data = ()
     
     while times>0:
-        
+
         if source_params is None:
             pass
         else:
@@ -1244,9 +1368,10 @@ def multiv_getvalues(input_params, dataout):
                 print "asdf keithley 366"
                 choice = 1
             data = GetIV(source_params, choice, dataout)
-        
-        data_out = xlsxwriter.Workbook(filename)
-        path = filename
+        if "Windows" in platform.platform():
+            data_out = xlsxwriter.Workbook(((filename+"_"+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":","_"))
+        else:
+            data_out = xlsxwriter.Workbook(filename +"_"+ str(time.asctime(time.localtime(time.time())))+".xlsx")
         worksheet = data_out.add_worksheet()
         
         (v, i) = data
@@ -1281,6 +1406,7 @@ def multiv_getvalues(input_params, dataout):
             sendMail(path, sentTo)
         except:
             pass
+        data_out.close()
         times-=1
     
     
@@ -1322,11 +1448,11 @@ class ThreadedProgram:
         while self.running:
             # print "looping"
             if self.inputdata.empty() is False and self.measuring is False:
-                self.outputdata.clear()
                 self.measuring = True
                 print "doing stuff"
                 # print self.inputdata
                 (params, type) = self.inputdata.get()
+                print "Type: "+str(type)
                 if type is 0:
                     getvalues(params, self.outputdata)
                 elif type is 1:

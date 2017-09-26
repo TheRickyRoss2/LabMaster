@@ -1,5 +1,4 @@
 import visa
-
 class Keithley2400(object):
     
     def __init__(self, gpib=22):
