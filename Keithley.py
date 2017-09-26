@@ -107,11 +107,16 @@ class Keithley2657a(object):
         print "Initializing Keithley 2657A"
         
         #print self.inst.query("*IDN?")
-        self.inst.write("smua.reset()")
+        #self.inst.write("smua.reset()")
+        #self.inst.write("smua.measure.adc=smua.ADC_INTEGRATE")
+        #self.inst.write("smua.measure.nplc=10")
+        #self.inst.write("smua.measure.count= 1000")
+        #self.inst.write("smua.measure.interval= 10e-6")
+
         #self.inst.write("print(errorqueue.next())")
         self.inst.write("display.smua.measure.func = display.MEASURE_DCAMPS")
+        self.inst.write("setup.recall(1)")
         self.inst.timeout = 10000
-        self.__reset_smu()
         
     def __configure_source(self, _source=1):
         source = {0:"OUTPUT_DCAMPS", 1:"OUTPUT_DCVOLTS"}.get(_source, "OUTPUT_DCVOLTS")        
@@ -138,6 +143,3 @@ class Keithley2657a(object):
     def get_current(self):
         return float(self.inst.query("printnumber(smua.measure.i())").split("\n")[0])
     
-    def __reset_smu(self):
-        self.inst.write("smua.reset()")
-        

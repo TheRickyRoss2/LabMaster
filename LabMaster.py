@@ -23,7 +23,7 @@ import xlsxwriter
 import Queue
 import random
 
-debug = False
+debug = True
 rm = visa.ResourceManager()
 print(rm.list_resources())
 # inst = rm.open_resource(rm.list_resources()[0])
@@ -79,8 +79,10 @@ def GetIV(sourceparam, sourcemeter, dataout):
             curr = (volt + randint(0, 10)) * 1e-9
         else:
             curr = keithley.get_current()
+            
+        print "Current Reading: "+str(curr)
         # curr = volt
-        time.sleep(1)
+        #time.sleep(delay_time)
         if abs(curr) > abs(compliance - 50e-9):
             badCount = badCount + 1        
         else:
@@ -112,13 +114,13 @@ def GetIV(sourceparam, sourcemeter, dataout):
         else:
             keithley.set_output(last_volt)
         
-        time.sleep(0.5)
+        time.sleep(delay_time/2.0)
         if last_volt < 0:
             last_volt += 5
         else:
             last_volt -= 5
     
-    time.sleep(0.5)
+    time.sleep(delay_time/2.0)
     if debug:
         pass
     else:
@@ -450,6 +452,7 @@ class GuiPart:
     
     def __init__(self, master, inputdata, outputdata, stopq):
         print "in guipart"
+        
         self.master = master
         self.inputdata = inputdata
         self.outputdata = outputdata
@@ -479,18 +482,34 @@ class GuiPart:
         self.cv_integration = StringVar()
         self.started = False
         
+        self.multiv_start_volt = StringVar()
+        self.multiv_end_volt = StringVar()
+        self.multiv_step_volt = StringVar()
+        self.multiv_hold_time = StringVar()
+        self.multiv_compliance = StringVar() 
+        self.multiv_recipients = StringVar()   
+        self.multiv_compliance_scale = StringVar()
+        self.multiv_source_choice = StringVar()
+        self.multiv_filename = StringVar()
+        
+        """
+        IV GUI
+        """
+        
         self.start_volt.set("0.0")
         self.end_volt.set("100.0")
         self.step_volt.set("5.0")
         self.hold_time.set("1.0")
         self.compliance.set("1.0")
         
-        
         self.f = plt.figure(figsize=(6, 4), dpi=60)
         self.a = self.f.add_subplot(111)
         
         self.cv_f = plt.figure(figsize=(6, 4), dpi=60)
         self.cv_a = self.cv_f.add_subplot(111)
+        
+        self.multiv_f = plt.figure(figsize=(6, 4), dpi=60)
+        self.multiv_a = self.cv_f.add_subplot(111)
         
         n = ttk.Notebook(root, width=800)
         n.grid(row=0, column=0, columnspan=100, rowspan=100, sticky='NESW')
@@ -504,7 +523,7 @@ class GuiPart:
         n.add(self.f3, text='Param Analyzer IV ')
         n.add(self.f4, text='Multiple IV')
         n.add(self.f5, text='Current Monitor')
-
+        
         if "Windows" in platform.platform():
             self.filename.set("iv_data")
             s = Label(self.f1, text="File name:")
@@ -730,6 +749,93 @@ class GuiPart:
         s.grid(row=4, column=7)
         
         print "finished drawing"
+        
+        """
+        Multiple IV GUI
+        """
+        
+        if "Windows" in platform.platform():
+            self.multiv_filename.set("iv_data")
+            s = Label(self.f4, text="File name:")
+            s.grid(row=0, column=1)
+            s = Entry(self.f4, textvariable=self.multiv_filename)
+            s.grid(row=0, column=2)
+        
+        s = Label(self.f4, text="Start Volt")
+        s.grid(row=1, column=1)
+        s = Entry(self.f4, textvariable=self.multiv_start_volt)
+        s.grid(row=1, column=2)
+        s = Label(self.f4, text="V")
+        s.grid(row=1, column=3)
+        
+        s = Label(self.f4, text="End Volt")
+        s.grid(row=2, column=1)
+        s = Entry(self.f4, textvariable=self.multiv_end_volt)
+        s.grid(row=2, column=2)
+        s = Label(self.f4, text="V")
+        s.grid(row=2, column=3)
+        
+        s = Label(self.f4, text="Step Volt")
+        s.grid(row=3, column=1)
+        s = Entry(self.f4, textvariable=self.multiv_step_volt)
+        s.grid(row=3, column=2)
+        s = Label(self.f4, text="V")
+        s.grid(row=3, column=3)
+        
+        s = Label(self.f4, text="Hold Time")
+        s.grid(row=4, column=1)
+        s = Entry(self.f4, textvariable=self.multiv_hold_time)
+        s.grid(row=4, column=2)
+        s = Label(self.f4, text="s")
+        s.grid(row=4, column=3)
+        
+        s = Label(self.f4, text="Compliance")
+        s.grid(row=5, column=1)
+        s = Entry(self.f4, textvariable=self.multiv_compliance)
+        s.grid(row=5, column=2)
+        self.multiv_compliance_scale.set('uA')
+        s = OptionMenu(self.f4, self.multiv_compliance_scale, *compliance_choices)
+        s.grid(row=5, column=3)
+        
+        self.multiv_recipients.set("adapbot@gmail.com")
+        s = Label(self.f4, text="Email data to:")
+        s.grid(row=6, column=1)
+        s = Entry(self.f4, textvariable=self.multiv_recipients)
+        s.grid(row=6, column=2)
+    
+        source_choices = {'Keithley 2400', 'Keithley 2657a'}
+        self.multiv_source_choice.set('Keithley 2657a')
+        s = OptionMenu(self.f4, self.multiv_source_choice, *source_choices)
+        s.grid(row=0, column=7)
+        
+        s = Label(self.f4, text="Progress:")
+        s.grid(row=11, column=1)
+       
+        s = Label(self.f4, text="Est finish at:")
+        s.grid(row=12, column=1)
+        
+        self.multiv_timer = Label(self.f4, text=timetext)
+        self.multiv_timer.grid(row=12, column=2)
+        
+        self.multiv_pb = ttk.Progressbar(self.f4, orient="horizontal", length=200, mode="determinate")
+        self.multiv_pb.grid(row=11, column=2, columnspan=5)
+        self.multiv_pb["maximum"] = 100
+        self.multiv_pb["value"] = 0
+        
+        self.multiv_canvas = FigureCanvasTkAgg(self.multiv_f, master=self.f4)
+        self.multiv_canvas.get_tk_widget().grid(row=7, columnspan=10)
+        self.multiv_a.set_title("IV")
+        self.multiv_a.set_xlabel("Voltage")
+        self.multiv_a.set_ylabel("Current")
+
+        self.multiv_canvas.draw()
+        
+        s = Button(self.f4, text="Start IVs", command=self.prepare_values)
+        s.grid(row=3, column=7)
+        
+        s = Button(self.f4, text="Stop", command=self.quit)
+        s.grid(row=4, column=7)
+        
         
     def update(self):
         while self.outputdata.qsize():
@@ -1216,6 +1322,7 @@ class ThreadedProgram:
         while self.running:
             # print "looping"
             if self.inputdata.empty() is False and self.measuring is False:
+                self.outputdata.clear()
                 self.measuring = True
                 print "doing stuff"
                 # print self.inputdata
@@ -1232,11 +1339,10 @@ class ThreadedProgram:
                     pass
                     # spa_getvalues(params, self.outputdata)
                 self.measuring = False
-    
     def endapp(self):
         self.running = 0
     
-  
+    
 if __name__ == "__main__":
     """
     data = Queue.Queue()
