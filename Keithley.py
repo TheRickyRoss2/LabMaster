@@ -107,7 +107,7 @@ class Keithley2657a(object):
         #print self.inst.query("*IDN?")
         #self.inst.write("smua.reset()")
         #self.inst.write("smua.measure.adc=smua.ADC_INTEGRATE")
-        #self.inst.write("smua.measure.nplc=10")
+        self.inst.write("smua.measure.nplc=25")
         #self.inst.write("smua.measure.count= 1000")
         #self.inst.write("smua.measure.interval= 10e-6")
 

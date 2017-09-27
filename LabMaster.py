@@ -81,8 +81,9 @@ def GetIV(sourceparam, sourcemeter, dataout):
             curr = keithley.get_current()
             
         print "Current Reading: "+str(curr)
+        
         # curr = volt
-        #time.sleep(delay_time)
+        time.sleep(1)
         if abs(curr) > abs(compliance - 50e-9):
             badCount = badCount + 1        
         else:
@@ -116,9 +117,9 @@ def GetIV(sourceparam, sourcemeter, dataout):
         
         time.sleep(delay_time/2.0)
         if last_volt < 0:
-            last_volt += 5
+            last_volt += step_volt*2
         else:
-            last_volt -= 5
+            last_volt -= step_volt*2
     
     time.sleep(delay_time/2.0)
     if debug:
