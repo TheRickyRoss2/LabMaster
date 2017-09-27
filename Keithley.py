@@ -91,7 +91,7 @@ class Keithley2657a(object):
         self.gpib_addr = gpib
         
         rm = visa.ResourceManager()
-        self.inst = 0
+        self.inst = rm.open_resource(rm.list_resources()[0])
         
         for x in rm.list_resources():
             if str(self.gpib_addr) in str(x):
@@ -100,7 +100,6 @@ class Keithley2657a(object):
                 self.inst = rm.open_resource(x)
             else:
                 print "Keithley not found\nPlease check GPIB Address"
-                exit()
         
         
         print "Initializing Keithley 2657A"
