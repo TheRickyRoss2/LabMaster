@@ -23,7 +23,7 @@ import xlsxwriter
 import Queue
 import random
 
-debug = True
+debug = False
 rm = visa.ResourceManager()
 print(rm.list_resources())
 # inst = rm.open_resource(rm.list_resources()[0])
@@ -351,13 +351,16 @@ def spa_iv(params, dataout):
     return(voltage_smua, current_smua, current_smu1, current_smu2, current_smu3, current_smu4, voltage_vmu1)
 
 # TODO: current monitor bugfixes and fifo implementation
-def current_monitoring(source_params, sourcemeter, dataout):
+def curmon(source_params, sourcemeter, dataout):
         
     (voltage_point, step_volt, hold_time, compliance, minutes) = source_params
-    
+    print "(voltage_point, step_volt, hold_time, compliance, minutes)"
+    print source_params
     currents = []
     timestamps = []
     voltages = []
+    
+    total_time = minutes*60
     
     keithley=0
     if debug:
@@ -374,14 +377,18 @@ def current_monitoring(source_params, sourcemeter, dataout):
      
     scaled = False
       
-    if step_volt < 1.0:
+    if step_volt < 1:
         voltage_point *= 1000
         step_volt *= 1000
         scaled = True
+    else:
+        step_volt = int(step_volt)
         
     if 0 > voltage_point:
         step_volt = -1 * step_volt
-           
+    
+    start_time = time.time()
+    
     for volt in xrange(0, voltage_point, step_volt):
             
         curr = 0
@@ -394,7 +401,7 @@ def current_monitoring(source_params, sourcemeter, dataout):
                 keithley.set_output(volt)
                 
         time.sleep(hold_time)
-            
+        
         if debug:
             curr = (volt + randint(0, 10)) * 1e-9
         else:
@@ -409,37 +416,58 @@ def current_monitoring(source_params, sourcemeter, dataout):
         if badCount >= 5 :
             print "Compliance reached"
             break
-            
+        
         if scaled:
             last_volt = volt / 1000.0
         else:
             last_volt = volt
-          
-        dataout.put(((timestamps, currents), 0, total_time))
+        
+        dataout.put(((timestamps, currents), 0, total_time+start_time))
         print """ramping up"""
-            
+    
     print "current time"
     print time.time()
     print "Start time"
     print start_time
     print "total time"
     print total_time
-        
+    
     start_time = time.time()
     while(time.time() < start_time + total_time):
-        time.sleep(20)
-            
-        dataout.put(((timestamps, currents), 0, total_time))
+        time.sleep(5)
+        
+        dataout.put(((timestamps, currents), 100*((time.time()-start_time)/total_time), start_time+total_time))
         if debug:
             currents.append(randint(0, 10) * 1e-9)
         else:
             currents.append(keithley.get_current())
         timestamps.append(time.time() - start_time)
-        print "timestamprs"
+        print "timestamps"
         print timestamps
         print "currents"
         print currents  
     print "Finished"
+    
+    while abs(last_volt) > 5:
+        if debug:
+            pass
+        else:
+            keithley.set_output(last_volt)
+        
+        time.sleep(hold_time/2.0)
+        if last_volt < 0:
+            last_volt += 5
+        else:
+            last_volt -= 5
+    
+    time.sleep(hold_time/2.0)
+    if debug:
+        pass
+    else:
+        keithley.set_output(0)
+        keithley.enable_output(False)
+    
+    return (timestamps, currents)
     
 class GuiPart:
     
@@ -500,7 +528,7 @@ class GuiPart:
         """
         IV GUI
         """
-        
+        ""
         self.start_volt.set("0.0")
         self.end_volt.set("100.0")
         self.step_volt.set("5.0")
@@ -915,6 +943,7 @@ class GuiPart:
         s = OptionMenu(self.f5, self.curmon_source_choice, *source_choices)
         s.grid(row=0, column=7)
         
+        
         s = Label(self.f5, text="Progress:")
         s.grid(row=11, column=1)
        
@@ -937,12 +966,11 @@ class GuiPart:
 
         self.curmon_canvas.draw()
         
-        s = Button(self.f5, text="Start IVs", command=self.curmon_prepare_values)
+        s = Button(self.f5, text="Start CurMon", command=self.curmon_prepare_values)
         s.grid(row=3, column=7)
         
         s = Button(self.f5, text="Stop", command=self.quit)
         s.grid(row=4, column=7)
-        
         
         
     def update(self):
@@ -1045,9 +1073,30 @@ class GuiPart:
                     self.multiv_timer = Label(self.f4, text=timetext)
                     self.multiv_timer.grid(row=12, column=2)
                     
+                elif self.type is 4:
                     
-                self.first = False
-                
+                    print "Percent done:" + str(percent)
+                    self.curmon_pb["value"] = percent
+                    self.curmon_pb.update()
+                    (voltages, currents) = data
+                    negative = False
+                    for v in voltages:
+                        if v < 0:
+                            negative = True
+                    if negative:
+                        line, = self.curmon_a.plot(map(lambda x: x * -1.0, voltages), map(lambda x: x * -1.0, currents))
+                    else:
+                        line, = self.curmon_a.plot(voltages, currents)
+                    line.set_antialiased(True)
+                    line.set_color('r')
+                    self.curmon_a.set_title("IV")
+                    self.curmon_a.set_xlabel("Voltage [V]")
+                    self.curmon_a.set_ylabel("Current [A]")
+                    self.curmon_canvas.draw()
+
+                    timetext = str(time.asctime(time.localtime(time.time() + timeremain)))
+                    self.curmon_timer = Label(self.f5, text=timetext)
+                    self.curmon_timer.grid(row=12, column=2)
             except Queue.Empty:
                 pass
                 
@@ -1411,9 +1460,70 @@ def multiv_getvalues(input_params, dataout):
     
     
 # TODO: Implement value parsing from gui
-def current_monitoring_getvalues(input_params, dataout):
-    pass
-
+def curmon_getvalues(input_params, dataout):
+    
+    if "Windows" in platform.platform():
+            (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename, total_time) = input_params
+            filename = ((filename+"_"+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":","_")
+    else:
+        (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, thowaway, total_time) = input_params
+        filename = tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*"))) +"_"+ str(time.asctime(time.localtime(time.time())))+".xlsx"
+    print "File done"
+    
+    try:
+        comp = float(float(compliance) * ({'mA':1e-3, 'uA':1e-6, 'nA':1e-9}.get(compliance_scale, 1e-6)))
+        source_params = (int(float(end_volt)), float(step_volt),
+                             float(hold_time), comp, int(total_time))
+    except ValueError:
+        print "Please fill in all fields!"
+    data = ()
+    if source_params is None:
+        pass
+    else:
+        print source_choice
+        choice = 0
+        if "2657a" in source_choice:
+            print "asdf keithley 366"
+            choice = 1
+        data = curmon(source_params, choice, dataout)
+            
+    data_out = xlsxwriter.Workbook(filename)
+    path = filename
+    worksheet = data_out.add_worksheet()
+    
+    (v, i) = data
+    values = []
+    pos = v[0]>v[1]
+    for x in xrange(0, len(v), 1):
+        values.append((v[x], i[x]))
+    row = 0
+    col = 0
+    
+    chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
+    
+    for volt, cur in values:
+        worksheet.write(row, col, volt)
+        worksheet.write(row, col + 1, cur)
+        row += 1
+    
+    chart.add_series({'categories': '=Sheet1!$A$1:$A$' + str(row), 'values': '=Sheet1!$B$1:$B$' + str(row)})
+    chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}, 'reverse':pos})
+    chart.set_y_axis({'name':'Current [A]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}, 'reverse':pos})
+    chart.set_legend({'none':True})
+    worksheet.insert_chart('D2', chart)
+    data_out.close()
+    
+    try:
+        mails = recipients.split(",")
+        sentTo = []
+        for mailee in mails:
+            sentTo.append(mailee.strip())
+    
+        print sentTo
+        sendMail(path, sentTo)
+    except:
+        pass
+    
     
 class ThreadedProgram:
     
@@ -1422,7 +1532,7 @@ class ThreadedProgram:
         self.inputdata = Queue.Queue()
         self.outputdata = Queue.Queue()
         self.stopqueue = Queue.Queue()
-        print "making gui"
+        print "Generating GUI"
         
         self.running = 1
         self.gui = GuiPart(master, self.inputdata, self.outputdata, self.stopqueue)
@@ -1436,7 +1546,7 @@ class ThreadedProgram:
         # print "Period"
         self.gui.update()
         if not self.stopqueue.empty():
-            print "quitting"
+            print "Exiting program"
             import sys
             self.master.destroy()
             self.running = 0
@@ -1446,13 +1556,10 @@ class ThreadedProgram:
     
     def workerThread1(self):
         while self.running:
-            # print "looping"
             if self.inputdata.empty() is False and self.measuring is False:
                 self.measuring = True
-                print "doing stuff"
-                # print self.inputdata
+                print "Instantiating Threads"
                 (params, type) = self.inputdata.get()
-                print "Type: "+str(type)
                 if type is 0:
                     getvalues(params, self.outputdata)
                 elif type is 1:
@@ -1461,21 +1568,17 @@ class ThreadedProgram:
                     spa_getvalues(params, self.outputdata)
                 elif type is 3:
                     multiv_getvalues(params, self.outputdata)
+                elif type is 4:
+                    curmon_getvalues(params, self.outputdata)
                 else:
                     pass
-                    # spa_getvalues(params, self.outputdata)
                 self.measuring = False
     def endapp(self):
         self.running = 0
     
     
 if __name__ == "__main__":
-    """
-    data = Queue.Queue()
-    print time.time()
-    current_monitoring((10, 1, 1, 1, 0, 2, 0), 0, data)
 
-    """
     root = Tk()
     root.geometry('800x800')
     root.title('LabMaster')
