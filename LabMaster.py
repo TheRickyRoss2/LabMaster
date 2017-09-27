@@ -109,17 +109,18 @@ def GetIV(sourceparam, sourcemeter, dataout):
         dataout.put(((voltages, currents), 100 * abs((volt + step_volt) / float(end_volt)), time_remain))
         
         
-    while abs(last_volt) > 5:
+    while abs(last_volt) > step_volt*2.0:
         if debug:
             pass
         else:
             keithley.set_output(last_volt)
         
         time.sleep(delay_time/2.0)
+        
         if last_volt < 0:
-            last_volt += step_volt*2
+            last_volt += step_volt*2.0
         else:
-            last_volt -= step_volt*2
+            last_volt -= step_volt*2.0
     
     time.sleep(delay_time/2.0)
     if debug:
