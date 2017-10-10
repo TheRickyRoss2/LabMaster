@@ -23,7 +23,7 @@ import xlsxwriter
 import Queue
 import random
 
-debug = False
+debug = True 
 rm = visa.ResourceManager()
 print(rm.list_resources())
 # inst = rm.open_resource(rm.list_resources()[0])
@@ -109,7 +109,7 @@ def GetIV(sourceparam, sourcemeter, dataout):
         dataout.put(((voltages, currents), 100 * abs((volt + step_volt) / float(end_volt)), time_remain))
         
         
-    while abs(last_volt) > step_volt*2.0:
+    while abs(last_volt) > 25:
         if debug:
             pass
         else:
@@ -118,9 +118,9 @@ def GetIV(sourceparam, sourcemeter, dataout):
         time.sleep(delay_time/2.0)
         
         if last_volt < 0:
-            last_volt += step_volt*2.0
+            last_volt += abs(step_volt*2.0)
         else:
-            last_volt -= step_volt*2.0
+            last_volt -= abs(step_volt*2.0)
     
     time.sleep(delay_time/2.0)
     if debug:
@@ -1152,9 +1152,9 @@ def getvalues(input_params, dataout):
             filename = ((filename+"_"+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":","_")
     else:
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, thowaway) = input_params
-        filename = tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*"))) +"_"+ str(time.asctime(time.localtime(time.time())))+".xlsx"
+        filename = ((tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*"))) + str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":", "_")
     print "File done"
-    
+
     try:
         comp = float(float(compliance) * ({'mA':1e-3, 'uA':1e-6, 'nA':1e-9}.get(compliance_scale, 1e-6)))
         source_params = (int(float(start_volt)), int(float(end_volt)), (float(step_volt)),
@@ -1215,7 +1215,7 @@ def cv_getvalues(input_params, dataout):
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, frequencies, function, amplitude, impedance, integration, recipients, filename) = input_params
     else:
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, frequencies, function, amplitude, impedance, integration, recipients, thowaway) = input_params
-        filename = tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*")))
+        filename = ((tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*"))) + str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":", "_")
     
     try:
         comp = float(float(compliance) * ({'mA':1e-3, 'uA':1e-6, 'nA':1e-9}.get(compliance_scale, 1e-6)))
@@ -1392,7 +1392,6 @@ def spa_getvalues(input_params, dataout):
 def multiv_getvalues(input_params, dataout):
     if "Windows" in platform.platform():
             (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename, times_str) = input_params
-            filename = ((filename+"_"+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":","_")
     else:
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, thowaway, times_str) = input_params
         filename = tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*")))
@@ -1419,10 +1418,9 @@ def multiv_getvalues(input_params, dataout):
                 print "asdf keithley 366"
                 choice = 1
             data = GetIV(source_params, choice, dataout)
-        if "Windows" in platform.platform():
-            data_out = xlsxwriter.Workbook(((filename+"_"+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":","_"))
-        else:
-            data_out = xlsxwriter.Workbook(filename +"_"+ str(time.asctime(time.localtime(time.time())))+".xlsx")
+        fname = (((filename+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":", "_"))
+        print fname
+        data_out = xlsxwriter.Workbook(fname)
         worksheet = data_out.add_worksheet()
         
         (v, i) = data
@@ -1432,15 +1430,12 @@ def multiv_getvalues(input_params, dataout):
             values.append((v[x], i[x]))
         row = 0
         col = 0
-        
         chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
-        
         for volt, cur in values:
             worksheet.write(row, col, volt)
             worksheet.write(row, col + 1, cur)
             row += 1
-        
-        chart.add_series({'categories': '=Sheet1!$A$1:$A$' + str(row), 'values': '=Sheet1!$B$1:$B$' + str(row)})
+        chart.add_series({'categories': '=Sheet1!$A$1:$A$' + str(row), 'values': '=Sheet1!$B$1:$B$' + str(row), 'marker':{'type':'triangle'}})
         chart.set_x_axis({'name':'Voltage [V]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}, 'reverse':pos})
         chart.set_y_axis({'name':'Current [A]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}, 'reverse':pos})
         chart.set_legend({'none':True})
@@ -1454,7 +1449,7 @@ def multiv_getvalues(input_params, dataout):
                 sentTo.append(mailee.strip())
         
             print sentTo
-            sendMail(path, sentTo)
+            sendMail(fname, sentTo)
         except:
             pass
         data_out.close()

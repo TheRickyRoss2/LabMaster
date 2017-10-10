@@ -91,19 +91,19 @@ class Keithley2657a(object):
         self.gpib_addr = gpib
         
         rm = visa.ResourceManager()
-        self.inst = rm.open_resource(rm.list_resources()[0])
+        self.inst = 0
         
         for x in rm.list_resources():
+            print """Keithely stuff"""
+            print str(self.gpib_addr)
+            print str(x)
             if str(self.gpib_addr) in str(x):
                 print x
                 print "Keithley Found"
                 self.inst = rm.open_resource(x)
             else:
                 print "Keithley not found\nPlease check GPIB Address"
-        
-        
         print "Initializing Keithley 2657A"
-        
         #print self.inst.query("*IDN?")
         #self.inst.write("smua.reset()")
         #self.inst.write("smua.measure.adc=smua.ADC_INTEGRATE")
