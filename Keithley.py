@@ -83,7 +83,7 @@ class Keithley2400(object):
         return self.__fetch_measurements()
         
 class Keithley2657a(object):
-    
+
     def __init__(self, gpib=24):
         """Set up gpib controller for device"""
         
@@ -91,7 +91,7 @@ class Keithley2657a(object):
         self.gpib_addr = gpib
         
         rm = visa.ResourceManager()
-        self.inst = 0
+        self.inst = rm.open_resource(rm.list_resources()[0])
         
         for x in rm.list_resources():
             print """Keithely stuff"""
