@@ -23,7 +23,7 @@ import xlsxwriter
 import Queue
 import random
 
-debug = False
+debug = True 
 rm = visa.ResourceManager()
 print(rm.list_resources())
 # inst = rm.open_resource(rm.list_resources()[0])
@@ -91,6 +91,7 @@ def GetIV(sourceparam, sourcemeter, dataout):
         
         if badCount >= 5 :
             print "Compliance reached"
+            dataout.put(((voltages, currents), 100, 0))
             break
         
         currents.append(curr)
@@ -332,8 +333,6 @@ def spa_iv(params, dataout):
         print "VMU1"
         print voltage_vmu1
         dataout.put((voltage_vmu1, current_smua, current_smu1, current_smu2, current_smu3, current_smu4))
-        
-        
     while abs(last_volt) >= 4:
         time.sleep(0.5)
 
@@ -1149,10 +1148,9 @@ class GuiPart:
 def getvalues(input_params, dataout):
     if "Windows" in platform.platform():
             (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename) = input_params
-            filename = ((filename+"_"+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":","_")
     else:
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, thowaway) = input_params
-        filename = ((tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*"))) + str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":", "_")
+        filename = tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*")))
     print "File done"
 
     try:
@@ -1172,8 +1170,8 @@ def getvalues(input_params, dataout):
             choice = 1
         data = GetIV(source_params, choice, dataout)
             
-    data_out = xlsxwriter.Workbook(filename)
-    path = filename
+    fname = (((filename+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":", "_"))
+    data_out = xlsxwriter.Workbook(fname)
     worksheet = data_out.add_worksheet()
     
     (v, i) = data
@@ -1205,7 +1203,7 @@ def getvalues(input_params, dataout):
             sentTo.append(mailee.strip())
     
         print sentTo
-        sendMail(path, sentTo)
+        sendMail(fname, sentTo)
     except:
         pass
     
@@ -1388,7 +1386,6 @@ def cv_getvalues(input_params, dataout):
 def spa_getvalues(input_params, dataout):
     pass
 
-# TODO: Implement value parsing from gui
 def multiv_getvalues(input_params, dataout):
     if "Windows" in platform.platform():
             (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename, times_str) = input_params
