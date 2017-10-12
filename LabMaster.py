@@ -1150,7 +1150,7 @@ def getvalues(input_params, dataout):
             (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename) = input_params
     else:
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, thowaway) = input_params
-        filename = tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*")))
+        filename = "./"+tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*")))
     print "File done"
 
     try:
@@ -1170,7 +1170,7 @@ def getvalues(input_params, dataout):
             choice = 1
         data = GetIV(source_params, choice, dataout)
             
-    fname = (((filename+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":", "_"))
+    fname = (((filename+"_"+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":", "_"))
     data_out = xlsxwriter.Workbook(fname)
     worksheet = data_out.add_worksheet()
     
@@ -1203,6 +1203,7 @@ def getvalues(input_params, dataout):
             sentTo.append(mailee.strip())
     
         print sentTo
+        print fname
         sendMail(fname, sentTo)
     except:
         pass
