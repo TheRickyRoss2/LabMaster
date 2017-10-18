@@ -23,7 +23,7 @@ import xlsxwriter
 import Queue
 import random
 
-debug = False 
+debug = True 
 rm = visa.ResourceManager()
 print(rm.list_resources())
 # inst = rm.open_resource(rm.list_resources()[0])
@@ -151,7 +151,10 @@ def GetCV(params, sourcemeter, dataout):
     
     (start_volt, end_volt, step_volt, delay_time, compliance,
      frequencies, level, function, impedance, int_time) = params
-    keithley.configure_measurement(1, 0, compliance)
+    if debug:
+        pass
+    else:
+        keithley.configure_measurement(1, 0, compliance)
     
     if debug:
         pass
@@ -1030,6 +1033,7 @@ class GuiPart:
                             
                             line, = self.cv_a.plot(voltages, c, label=(self.cv_frequencies.get().split(",")[i] + "Hz"))
                             self.cv_a.legend()
+                            self.first = False
                         else:
                             line, = self.cv_a.plot(voltages, c)
                         line.set_antialiased(True)
@@ -1150,7 +1154,7 @@ def getvalues(input_params, dataout):
             (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename) = input_params
     else:
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, thowaway) = input_params
-        filename = "./"+tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*")))
+        filename = tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*")))
     print "File done"
 
     try:
@@ -1214,7 +1218,7 @@ def cv_getvalues(input_params, dataout):
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, frequencies, function, amplitude, impedance, integration, recipients, filename) = input_params
     else:
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, frequencies, function, amplitude, impedance, integration, recipients, thowaway) = input_params
-        filename = ((tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*"))) + str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":", "_")
+        filename = tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*")))
     
     try:
         comp = float(float(compliance) * ({'mA':1e-3, 'uA':1e-6, 'nA':1e-9}.get(compliance_scale, 1e-6)))
@@ -1228,9 +1232,9 @@ def cv_getvalues(input_params, dataout):
         pass
     else:
         data = GetCV(params, {"Keithley 2657a":1, "Keithley 2400":0}.get(source_choice), dataout)
+        fname = (((filename+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":", "_"))
     
-    data_out = xlsxwriter.Workbook(filename)
-    path = filename + str(time.asctime(time.localtime(time.time()))) + ".xlsx"
+    data_out = xlsxwriter.Workbook(fname)
     worksheet = data_out.add_worksheet()
     
     (v, i, c, r) = data
@@ -1378,7 +1382,7 @@ def cv_getvalues(input_params, dataout):
             sentTo.append(mailee.strip())
                 
         print sentTo
-        sendMail(path, sentTo)
+        sendMail(fname, sentTo)
     except:
         print "Failed to get recipients"
         pass
@@ -1462,7 +1466,7 @@ def curmon_getvalues(input_params, dataout):
             filename = ((filename+"_"+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":","_")
     else:
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, thowaway, total_time) = input_params
-        filename = tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*"))) +"_"+ str(time.asctime(time.localtime(time.time())))+".xlsx"
+        filename = tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*")))
     print "File done"
     
     try:

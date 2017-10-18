@@ -11,10 +11,10 @@ class Agilent4156(object):
         
         print "Initializing Agilent semiconductor parameter analyzer"
         rm = visa.ResourceManager()
-        self.inst = 0
+        self.inst = rm.list_resources()[0]
         for x in rm.list_resources():
             if str(self.gpib_addr) in x:
-                print "found"
+                print "Found agilent lcrmeter"
                 self.inst = rm.open_resource(x)
                 
         self.inst = rm.open_resource(rm.list_resources()[0])
