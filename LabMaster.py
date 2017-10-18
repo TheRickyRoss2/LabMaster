@@ -233,20 +233,20 @@ def GetCV(params, sourcemeter, dataout):
         
         last_volt = volt
         # graph point here
-        
+
     if debug:
         pass
     else:
-        while last_volt > 0:
-            if last_volt <= 5:
+        while abs(last_volt) > abs(step_volt):
+            if last_volt <= step_volt:
                 keithley.set_output(0)
                 last_volt = 0
             else:
-                keithley.set_output(last_volt - 5)
-                last_volt -= 5
-                
-            time.sleep(0.5)
-    
+                keithley.set_output(last_volt - step_volt)
+                last_volt -= step_volt
+
+            time.sleep(1)
+
     if debug:
         pass
     else:
