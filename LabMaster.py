@@ -23,7 +23,7 @@ import xlsxwriter
 import Queue
 import random
 
-debug = False 
+debug = True 
 rm = visa.ResourceManager()
 print(rm.list_resources())
 # inst = rm.open_resource(rm.list_resources()[0])
@@ -1033,7 +1033,6 @@ class GuiPart:
                             
                             line, = self.cv_a.plot(voltages, c, label=(self.cv_frequencies.get().split(",")[i] + "Hz"))
                             self.cv_a.legend()
-                            self.first = False
                         else:
                             line, = self.cv_a.plot(voltages, c)
                         line.set_antialiased(True)
@@ -1047,6 +1046,7 @@ class GuiPart:
                     timetext = str(time.asctime(time.localtime(time.time() + timeremain)))
                     self.timer = Label(self.f2, text=timetext)
                     self.timer.grid(row=15, column=2)
+                    self.first=False
                     
                 elif self.type is 2:
                     pass
