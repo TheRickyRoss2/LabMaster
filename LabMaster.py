@@ -24,7 +24,7 @@ import xlsxwriter
 import Queue
 import random
 
-debug = True
+debug = False
 rm = visa.ResourceManager()
 print(rm.list_resources())
 
