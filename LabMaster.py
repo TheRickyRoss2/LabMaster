@@ -234,8 +234,14 @@ def GetCV(params, sourcemeter, dataout, stopqueue):
         
         time_remain = time.time() + (time.time() - start_time) * (abs((volt - end_volt) / end_volt))
         
-        last_volt = volt
+        if scaled:
+            last_volt = volt/1000.0
+        else:
+            last_volt = volt
         # graph point here
+
+    if scaled:
+        last_volt = last_volt/1000
 
     if debug:
         pass
