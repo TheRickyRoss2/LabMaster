@@ -1,3 +1,4 @@
+#!/usr/local/bin/python
 # -*- coding: utf-8 -*-
 from Keithley import Keithley2400, Keithley2657a
 from Agilent import AgilentE4980a, Agilent4156
@@ -23,15 +24,11 @@ import xlsxwriter
 import Queue
 import random
 
-debug = False 
+debug = True
 rm = visa.ResourceManager()
 print(rm.list_resources())
-# inst = rm.open_resource(rm.list_resources()[0])
-# print(inst.query("REMOTE 716"))
-# print(inst.query("CLEAR 7"))
-# x = raw_input(">")
 
-def GetIV(sourceparam, sourcemeter, dataout):
+def GetIV(sourceparam, sourcemeter, dataout, stopqueue):
     (start_volt, end_volt, step_volt, delay_time, compliance) = sourceparam
     
     currents = []
@@ -62,6 +59,9 @@ def GetIV(sourceparam, sourcemeter, dataout):
     print "looping now"
     
     for volt in xrange(start_volt, end_volt, int(step_volt)):
+        if not stopqueue.empty():
+            stopqueue.get()
+            break
         start_time = time.time()
         
         curr = 0
@@ -131,7 +131,7 @@ def GetIV(sourceparam, sourcemeter, dataout):
         keithley.enable_output(False)
     return (voltages, currents)
 
-def GetCV(params, sourcemeter, dataout):
+def GetCV(params, sourcemeter, dataout, stopqueue):
     
     capacitance = []
     voltages = []
@@ -178,6 +178,9 @@ def GetCV(params, sourcemeter, dataout):
     
     start_time = time.time()
     for volt in xrange(start_volt, end_volt, step_volt):
+        if not stopqueue.empty():
+            stopqueue.get()
+            break
     
         start_time = time.time()
         if debug:
@@ -254,7 +257,7 @@ def GetCV(params, sourcemeter, dataout):
     
     return (voltages, currents, formatted_cap, parameter2)
 
-def spa_iv(params, dataout):
+def spa_iv(params, dataout, stopqueue):
     (start_volt, end_volt, step_volt, hold_time, compliance, int_time) = params
     
     print params
@@ -355,7 +358,7 @@ def spa_iv(params, dataout):
     return(voltage_smua, current_smua, current_smu1, current_smu2, current_smu3, current_smu4, voltage_vmu1)
 
 # TODO: current monitor bugfixes and fifo implementation
-def curmon(source_params, sourcemeter, dataout):
+def curmon(source_params, sourcemeter, dataout, stopqueue):
         
     (voltage_point, step_volt, hold_time, compliance, minutes) = source_params
     print "(voltage_point, step_volt, hold_time, compliance, minutes)"
@@ -394,6 +397,9 @@ def curmon(source_params, sourcemeter, dataout):
     start_time = time.time()
     
     for volt in xrange(0, voltage_point, step_volt):
+        if not stopqueue.empty():
+            stopqueue.get()
+            break
             
         curr = 0
         if debug:
@@ -1108,6 +1114,7 @@ class GuiPart:
     def quit(self):
         print "placing order"
         self.stop.put("random")
+        self.stop.put("another random value")
     
     def prepare_values(self):
         print "preparing iv values"
@@ -1149,7 +1156,7 @@ class GuiPart:
         self.curmon_a = self.curmon_f.add_subplot(111)
         self.type = 4
         
-def getvalues(input_params, dataout):
+def getvalues(input_params, dataout, stopqueue):
     if "Windows" in platform.platform():
             (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename) = input_params
     else:
@@ -1172,7 +1179,7 @@ def getvalues(input_params, dataout):
         if "2657a" in source_choice:
             print "asdf keithley 366"
             choice = 1
-        data = GetIV(source_params, choice, dataout)
+        data = GetIV(source_params, choice, dataout, stopqueue)
             
     fname = (((filename+"_"+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":", "_"))
     data_out = xlsxwriter.Workbook(fname)
@@ -1212,10 +1219,11 @@ def getvalues(input_params, dataout):
     except:
         pass
     
-def cv_getvalues(input_params, dataout):
+def cv_getvalues(input_params, dataout, stopqueue):
     print input_params
     if "Windows" in platform.platform():
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, frequencies, function, amplitude, impedance, integration, recipients, filename) = input_params
+        filename = "./"+filename
     else:
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, frequencies, function, amplitude, impedance, integration, recipients, thowaway) = input_params
         filename = tkFileDialog.asksaveasfilename(initialdir="~", title="Save data", filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*")))
@@ -1231,8 +1239,8 @@ def cv_getvalues(input_params, dataout):
     if params is None:
         pass
     else:
-        data = GetCV(params, {"Keithley 2657a":1, "Keithley 2400":0}.get(source_choice), dataout)
-        fname = (((filename+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":", "_"))
+        data = GetCV(params, {"Keithley 2657a":1, "Keithley 2400":0}.get(source_choice), dataout, stopqueue)
+        fname = (((filename+"_"+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":", "_"))
     
     data_out = xlsxwriter.Workbook(fname)
     worksheet = data_out.add_worksheet()
@@ -1391,7 +1399,7 @@ def cv_getvalues(input_params, dataout):
 def spa_getvalues(input_params, dataout):
     pass
 
-def multiv_getvalues(input_params, dataout):
+def multiv_getvalues(input_params, dataout, stopqueue):
     if "Windows" in platform.platform():
             (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename, times_str) = input_params
     else:
@@ -1410,6 +1418,8 @@ def multiv_getvalues(input_params, dataout):
     data = ()
     
     while times>0:
+        if not stopqueue.empty():
+            break
 
         if source_params is None:
             pass
@@ -1419,7 +1429,7 @@ def multiv_getvalues(input_params, dataout):
             if "2657a" in source_choice:
                 print "asdf keithley 366"
                 choice = 1
-            data = GetIV(source_params, choice, dataout)
+            data = GetIV(source_params, choice, dataout, stopqueue)
         fname = (((filename+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":", "_"))
         print fname
         data_out = xlsxwriter.Workbook(fname)
@@ -1459,7 +1469,7 @@ def multiv_getvalues(input_params, dataout):
     
     
 # TODO: Implement value parsing from gui
-def curmon_getvalues(input_params, dataout):
+def curmon_getvalues(input_params, dataout, stopqueue):
     
     if "Windows" in platform.platform():
             (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename, total_time) = input_params
@@ -1484,7 +1494,7 @@ def curmon_getvalues(input_params, dataout):
         if "2657a" in source_choice:
             print "asdf keithley 366"
             choice = 1
-        data = curmon(source_params, choice, dataout)
+        data = curmon(source_params, choice, dataout, stopqueue)
             
     data_out = xlsxwriter.Workbook(filename)
     path = filename
@@ -1540,16 +1550,20 @@ class ThreadedProgram:
         self.thread1.start()
         self.periodicCall()
         self.measuring = False
+        self.master.protocol("WM_DELETE_WINDOW", self.endapp)
+
     
     def periodicCall(self):
         # print "Period"
         self.gui.update()
-        if not self.stopqueue.empty():
-            print "Exiting program"
-            import sys
-            self.master.destroy()
-            self.running = 0
-            sys.exit(0)
+        if self.stopqueue.qsize()==1:
+            pass
+            #self.stopqueue.get()
+            #print "Exiting program"
+            #import sys
+            #self.master.destroy()
+            #self.running = 0
+            #sys.exit(0)
             
         self.master.after(200, self.periodicCall)
     
@@ -1560,20 +1574,23 @@ class ThreadedProgram:
                 print "Instantiating Threads"
                 (params, type) = self.inputdata.get()
                 if type is 0:
-                    getvalues(params, self.outputdata)
+                    getvalues(params, self.outputdata, self.stopqueue)
                 elif type is 1:
-                    cv_getvalues(params, self.outputdata)
+                    cv_getvalues(params, self.outputdata, self.stopqueue)
                 elif type is 2:
-                    spa_getvalues(params, self.outputdata)
+                    spa_getvalues(params, self.outputdata, self.stopqueue)
                 elif type is 3:
-                    multiv_getvalues(params, self.outputdata)
+                    multiv_getvalues(params, self.outputdata, self.stopqueue)
                 elif type is 4:
-                    curmon_getvalues(params, self.outputdata)
+                    curmon_getvalues(params, self.outputdata, self.stopqueue)
                 else:
                     pass
                 self.measuring = False
     def endapp(self):
         self.running = 0
+        self.master.destroy()
+        import sys
+        sys.exit(0)
     
     
 if __name__ == "__main__":
