@@ -1188,7 +1188,10 @@ def getvalues(input_params, dataout, stopqueue):
         data = GetIV(source_params, choice, dataout, stopqueue)
             
     fname = (((filename+"_"+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":", "_"))
+
     data_out = xlsxwriter.Workbook(fname)
+    if "Windows" in platform.platform():
+        fname = "./"+fname
     worksheet = data_out.add_worksheet()
     
     (v, i) = data
@@ -1249,6 +1252,8 @@ def cv_getvalues(input_params, dataout, stopqueue):
         fname = (((filename+"_"+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":", "_"))
     
     data_out = xlsxwriter.Workbook(fname)
+    if "Windows" in platform.platform():
+        fname = "./"+fname
     worksheet = data_out.add_worksheet()
     
     (v, i, c, r) = data
@@ -1364,7 +1369,7 @@ def cv_getvalues(input_params, dataout, stopqueue):
         chart.set_y_axis({'name':'Resistance [R]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_legend({'none':True})
         worksheet.insert_chart('T' + str(row + 40), chart)
-    
+    name
     if fs >= 4:
         chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
         chart.add_series({'categories': '=Sheet1!$A$10:$A$' + str(row), 'values': '=Sheet1!$K$10:$K$' + str(row), 'marker': {'type': 'star'}})
@@ -1436,9 +1441,11 @@ def multiv_getvalues(input_params, dataout, stopqueue):
                 print "asdf keithley 366"
                 choice = 1
             data = GetIV(source_params, choice, dataout, stopqueue)
-        fname = (((filename+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":", "_"))
+        fname = (((filename+"_"+str(time.asctime(time.localtime(time.time())))+".xlsx").replace(" ", "_")).replace(":", "_"))
         print fname
         data_out = xlsxwriter.Workbook(fname)
+        if "Windows" in platform.platform():
+            fname = "./"+fname
         worksheet = data_out.add_worksheet()
         
         (v, i) = data
@@ -1503,6 +1510,8 @@ def curmon_getvalues(input_params, dataout, stopqueue):
         data = curmon(source_params, choice, dataout, stopqueue)
             
     data_out = xlsxwriter.Workbook(filename)
+    if "Windows" in platform.platform():
+        fname = "./"+filename
     path = filename
     worksheet = data_out.add_worksheet()
     
