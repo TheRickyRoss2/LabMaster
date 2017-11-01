@@ -160,7 +160,6 @@ def GetCV(params, sourcemeter, dataout, stopqueue):
         pass
     else:
         agilent = AgilentE4980a()
-        agilent.init()
         agilent.configure_measurement(function)
         agilent.configure_aperture(int_time)
     badCount = 0
