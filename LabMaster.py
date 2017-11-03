@@ -138,6 +138,7 @@ def GetCV(params, sourcemeter, dataout, stopqueue):
     p2 = []
     c = []
     keithley = 0
+    agilent = 0
     
     if debug:
         pass
