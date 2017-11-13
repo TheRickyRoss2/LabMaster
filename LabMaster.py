@@ -1369,7 +1369,7 @@ def cv_getvalues(input_params, dataout, stopqueue):
         chart.set_y_axis({'name':'Resistance [R]', 'major_gridlines':{'visible':True}, 'minor_tick_mark':'cross', 'major_tick_mark':'cross', 'line':{'color':'black'}})
         chart.set_legend({'none':True})
         worksheet.insert_chart('T' + str(row + 40), chart)
-    name
+  
     if fs >= 4:
         chart = data_out.add_chart({'type':'scatter', 'subtype':'straight_with_markers'})
         chart.add_series({'categories': '=Sheet1!$A$10:$A$' + str(row), 'values': '=Sheet1!$K$10:$K$' + str(row), 'marker': {'type': 'star'}})
