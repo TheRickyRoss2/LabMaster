@@ -1,5 +1,5 @@
-import visa
-import time
+import pyvisa
+
 
 class Agilent4156(object):
     
@@ -8,17 +8,17 @@ class Agilent4156(object):
         
         assert(gpib >= 0), "Please enter a valid GPIB address"
         self.gpib_addr = gpib
-        
-        print "Initializing Agilent semiconductor parameter analyzer"
-        rm = visa.ResourceManager()
+
+        print("Initializing Agilent semiconductor parameter analyzer")
+        rm = pyvisa.ResourceManager()
         self.inst = rm.list_resources()[0]
         for x in rm.list_resources():
             if str(self.gpib_addr) in x:
-                print "Found agilent lcrmeter"
+                print("Found agilent lcrmeter")
                 self.inst = rm.open_resource(x)
                 
         self.inst = rm.open_resource(rm.list_resources()[0])
-        print self.inst.query("*IDN?")
+        print(self.inst.query("*IDN?"))
         
         self.inst.write("*RST")
         self.inst.write("*ESE 60;*SRE 48;*CLS;")
@@ -90,7 +90,7 @@ class Agilent4156(object):
         else:
             self.inst.write(":PAGE:CHAN:" + vmu + ":DCH OFF;")
         self.inst.write(":PAGE:CHAN:" + vmu + ":VNAM \'" + name + "\';")
-        print "vmuset good"
+        print("vmuset good")
         
         
     def configure_channel(self, _chan=0, standby=False):
@@ -125,16 +125,16 @@ class AgilentE4980a(object):
         
         assert(gpib >= 0), "Please enter a valid gpib address"
         self.gpib_addr = gpib
-        
-        print "Initializing agilent lcr_meter"
-        rm = visa.ResourceManager()
+
+        print("Initializing agilent lcr_meter")
+        rm = pyvisa.ResourceManager()
         self.inst = 0
         for x in rm.list_resources():
             if str(self.gpib_addr) in x:
-                print "found"
+                print("found")
                 self.inst = rm.open_resource(x)
-        
-        print self.inst.query("*IDN?;")
+
+        print(self.inst.query("*IDN?;"))
         
         self.inst.write("*RST;")
         self.inst.write("*ESE 60;*SRE 48;*CLS;")
@@ -180,10 +180,3 @@ class AgilentE4980a(object):
     def read_data(self):
         self.initiate()
         return self.__fetch_data()
-        
-    # TODO: CV Correction calculations
-    def correction(self):
-        self.inst.write(":CORR:LENG 1;")
-        self.inst.write(":CORR:LOAD:STAT ON")
-        self.inst.write(":CORR:LOAD:TYPE "+func)
-        self.inst.write(":CORR:METH SING")
