@@ -601,12 +601,10 @@ class GuiPart:
         n.add(self.f4, text='Multiple IV')
         n.add(self.f5, text='Current Monitor')
 
-        if "Windows" in platform.platform():
+        if "Windows" in platform():
             self.filename.set("iv_data")
-            s = Label(self.f1, text="File name:")
-            s.grid(row=0, column=1)
-            s = Entry(self.f1, textvariable=self.filename)
-            s.grid(row=0, column=2)
+            Label(self.f1, text="File name:").grid(row=0, column=1)
+            Entry(self.f1, textvariable=self.filename).grid(row=0, column=2)
 
         Label(self.f1, text="Start Volt").grid(row=1, column=1)
         Entry(self.f1, textvariable=self.start_volt).grid(row=1, column=2)
@@ -679,7 +677,7 @@ class GuiPart:
         self.cv_filename = StringVar()
         self.cv_filename.set("cv_data")
 
-        if "Windows" in platform.platform():
+        if "Windows" in platform():
             Label(self.f2, text="File name").grid(row=0, column=1)
             Entry(self.f2, textvariable=self.cv_filename).grid(row=0, column=2)
 
@@ -695,93 +693,66 @@ class GuiPart:
 
         self.cv_step_volt.set("1.0")
         Label(self.f2, text="Step Volt").grid(row=3, column=1)
-        s = Entry(self.f2, textvariable=self.cv_step_volt)
-        s.grid(row=3, column=2)
-        s = Label(self.f2, text="V")
-        s.grid(row=3, column=3)
+        Entry(self.f2, textvariable=self.cv_step_volt).grid(row=3, column=2)
+        Label(self.f2, text="V").grid(row=3, column=3)
 
         self.cv_hold_time.set("1.0")
-        s = Label(self.f2, text="Hold Time")
-        s.grid(row=4, column=1)
-        s = Entry(self.f2, textvariable=self.cv_hold_time)
-        s.grid(row=4, column=2)
-        s = Label(self.f2, text="s")
-        s.grid(row=4, column=3)
+        Label(self.f2, text="Hold Time").grid(row=4, column=1)
+        Entry(self.f2, textvariable=self.cv_hold_time).grid(row=4, column=2)
+        Label(self.f2, text="s").grid(row=4, column=3)
 
         self.cv_compliance.set("1.0")
-        s = Label(self.f2, text="Compliance")
-        s.grid(row=5, column=1)
-        s = Entry(self.f2, textvariable=self.cv_compliance)
-        s.grid(row=5, column=2)
+        Label(self.f2, text="Compliance").grid(row=5, column=1)
+        Entry(self.f2, textvariable=self.cv_compliance).grid(row=5, column=2)
         self.cv_compliance_scale.set('uA')
-        s = OptionMenu(self.f2, self.cv_compliance_scale, *compliance_choices)
-        s.grid(row=5, column=3)
+        OptionMenu(self.f2, self.cv_compliance_scale, *compliance_choices).grid(row=5, column=3)
 
         self.cv_recipients.set("adapbot@gmail.com")
-        s = Label(self.f2, text="Email data to:")
-        s.grid(row=6, column=1)
-        s = Entry(self.f2, textvariable=self.cv_recipients)
-        s.grid(row=6, column=2)
+        Label(self.f2, text="Email data to:").grid(row=6, column=1)
+        Entry(self.f2, textvariable=self.cv_recipients).grid(row=6, column=2)
 
-        s = Label(self.f2, text="Agilent LCRMeter Parameters", relief=RAISED)
-        s.grid(row=7, column=1, columnspan=2)
+        Label(self.f2, text="Agilent LCRMeter Parameters", relief=RAISED).grid(row=7, column=1, columnspan=2)
 
         self.cv_impedance = StringVar()
-        s = Label(self.f2, text="Function")
-        s.grid(row=8, column=1)
+        Label(self.f2, text="Function").grid(row=8, column=1)
         function_choices = {"CPD", "CPQ", "CPG", "CPRP", "CSD", "CSQ", "CSRS", "LPD",
                             "LPQ", "LPG", "LPRP", "LPRD", "LSD", "LSQ", "LSRS", "LSRD",
                             "RX", "ZTD", "ZTR", "GB", "YTD", "YTR", "VDID"}
         self.cv_function_choice = StringVar()
         self.cv_function_choice.set('CPD')
-        s = OptionMenu(self.f2, self.cv_function_choice, *function_choices)
-        s.grid(row=8, column=2)
+        OptionMenu(self.f2, self.cv_function_choice, *function_choices).grid(row=8, column=2)
 
         self.cv_impedance.set("2000")
-        s = Label(self.f2, text="Impedance")
-        s.grid(row=9, column=1)
-        s = Entry(self.f2, textvariable=self.cv_impedance)
-        s.grid(row=9, column=2)
-        s = Label(self.f2, text="Ohm")
-        s.grid(row=9, column=3)
+        Label(self.f2, text="Impedance").grid(row=9, column=1)
+        Entry(self.f2, textvariable=self.cv_impedance).grid(row=9, column=2)
+        Label(self.f2, text="Ohm").grid(row=9, column=3)
 
         self.cv_frequencies.set("100, 200, 1000, 2000")
-        s = Label(self.f2, text="Frequencies")
-        s.grid(row=10, column=1)
-        s = Entry(self.f2, textvariable=self.cv_frequencies)
-        s.grid(row=10, column=2)
-        s = Label(self.f2, text="Hz")
-        s.grid(row=10, column=3)
+        Label(self.f2, text="Frequencies").grid(row=10, column=1)
+        Entry(self.f2, textvariable=self.cv_frequencies).grid(row=10, column=2)
+        Label(self.f2, text="Hz").grid(row=10, column=3)
 
         self.cv_amplitude.set("5.0")
-        s = Label(self.f2, text="Signal Amplitude")
-        s.grid(row=11, column=1)
-        s = Entry(self.f2, textvariable=self.cv_amplitude)
-        s.grid(row=11, column=2)
-        s = Label(self.f2, text="V")
-        s.grid(row=11, column=3)
+        Label(self.f2, text="Signal Amplitude").grid(row=11, column=1)
+        Entry(self.f2, textvariable=self.cv_amplitude).grid(row=11, column=2)
+        Label(self.f2, text="V").grid(row=11, column=3)
 
         cv_int_choices = {"Short", "Medium", "Long"}
-        s = Label(self.f2, text="Integration time")
-        s.grid(row=12, column=1)
+        Label(self.f2, text="Integration time").grid(row=12, column=1)
         self.cv_integration.set("Short")
-        s = OptionMenu(self.f2, self.cv_integration, *cv_int_choices)
-        s.grid(row=12, column=2)
+        OptionMenu(self.f2, self.cv_integration, *cv_int_choices).grid(row=12, column=2)
 
         self.cv_source_choice.set('Keithley 2657a')
-        s = OptionMenu(self.f2, self.cv_source_choice, *source_choices)
-        s.grid(row=0, column=7)
+        OptionMenu(self.f2, self.cv_source_choice, *source_choices).grid(row=0, column=7)
 
-        s = Label(self.f2, text="Progress:")
-        s.grid(row=14, column=1)
+        Label(self.f2, text="Progress:").grid(row=14, column=1)
 
-        self.cv_pb = ttk.Progressbar(self.f2, orient="horizontal", length=200, mode="determinate")
-        self.cv_pb.grid(row=14, column=2, columnspan=5)
-        self.cv_pb["maximum"] = 100
-        self.cv_pb["value"] = 0
+        self.cv_progress_bar = ttk.Progressbar(self.f2, orient="horizontal", length=200, mode="determinate")
+        self.cv_progress_bar.grid(row=14, column=2, columnspan=5)
+        self.cv_progress_bar["maximum"] = 100
+        self.cv_progress_bar["value"] = 0
 
-        s = Label(self.f2, text="Est finish at:")
-        s.grid(row=15, column=1)
+        Label(self.f2, text="Est finish at:").grid(row=15, column=1)
         cv_timetext = str(time.asctime(time.localtime(time.time())))
         self.timer = Label(self.f2, text=cv_timetext)
         self.timer.grid(row=15, column=2)
@@ -793,83 +764,54 @@ class GuiPart:
         self.cv_a.set_ylabel("Capacitance")
         self.cv_canvas.draw()
 
-        s = Button(self.f2, text="Start CV", command=self.cv_prepare_values)
-        s.grid(row=3, column=7)
+        Button(self.f2, text="Start CV", command=self.cv_prepare_values).grid(row=3, column=7)
 
-        s = Button(self.f2, text="Stop", command=self.quit)
-        s.grid(row=4, column=7)
-
-        print
-        "finished drawing"
+        Button(self.f2, text="Stop", command=self.quit).grid(row=4, column=7)
 
         """
         Multiple IV GUI
         """
 
-        if "Windows" in platform.platform():
+        if "Windows" in platform():
             self.multiv_filename.set("iv_data")
-            s = Label(self.f4, text="File name:")
-            s.grid(row=0, column=1)
-            s = Entry(self.f4, textvariable=self.multiv_filename)
-            s.grid(row=0, column=2)
+            Label(self.f4, text="File name:").grid(row=0, column=1)
+            Entry(self.f4, textvariable=self.multiv_filename).grid(row=0, column=2)
 
-        s = Label(self.f4, text="Start Volt")
-        s.grid(row=1, column=1)
-        s = Entry(self.f4, textvariable=self.multiv_start_volt)
-        s.grid(row=1, column=2)
-        s = Label(self.f4, text="V")
-        s.grid(row=1, column=3)
+        Label(self.f4, text="Start Volt").grid(row=1, column=1)
+        Entry(self.f4, textvariable=self.multiv_start_volt).grid(row=1, column=2)
+        Label(self.f4, text="V").grid(row=1, column=3)
 
-        s = Label(self.f4, text="End Volt")
-        s.grid(row=2, column=1)
-        s = Entry(self.f4, textvariable=self.multiv_end_volt)
-        s.grid(row=2, column=2)
-        s = Label(self.f4, text="V")
-        s.grid(row=2, column=3)
+        Label(self.f4, text="End Volt").grid(row=2, column=1)
+        Entry(self.f4, textvariable=self.multiv_end_volt).grid(row=2, column=2)
+        Label(self.f4, text="V").grid(row=2, column=3)
 
-        s = Label(self.f4, text="Step Volt")
-        s.grid(row=3, column=1)
-        s = Entry(self.f4, textvariable=self.multiv_step_volt)
-        s.grid(row=3, column=2)
-        s = Label(self.f4, text="V")
-        s.grid(row=3, column=3)
+        Label(self.f4, text="Step Volt").grid(row=3, column=1)
+        Entry(self.f4, textvariable=self.multiv_step_volt).grid(row=3, column=2)
+        Label(self.f4, text="V").grid(row=3, column=3)
 
-        s = Label(self.f4, text="Repeat Times")
-        s.grid(row=4, column=1)
-        s = Entry(self.f4, textvariable=self.multiv_times)
-        s.grid(row=4, column=2)
+        Label(self.f4, text="Repeat Times").grid(row=4, column=1)
+        Entry(self.f4, textvariable=self.multiv_times).grid(row=4, column=2)
 
-        s = Label(self.f4, text="Hold Time")
-        s.grid(row=5, column=1)
-        s = Entry(self.f4, textvariable=self.multiv_hold_time)
-        s.grid(row=5, column=2)
-        s = Label(self.f4, text="s")
-        s.grid(row=5, column=3)
+        Label(self.f4, text="Hold Time").grid(row=5, column=1)
+        Entry(self.f4, textvariable=self.multiv_hold_time).grid(row=5, column=2)
+        Label(self.f4, text="s").grid(row=5, column=3)
 
-        s = Label(self.f4, text="Compliance")
-        s.grid(row=6, column=1)
-        s = Entry(self.f4, textvariable=self.multiv_compliance)
-        s.grid(row=6, column=2)
+        Label(self.f4, text="Compliance").grid(row=6, column=1)
+        Entry(self.f4, textvariable=self.multiv_compliance).grid(row=6, column=2)
         self.multiv_compliance_scale.set('uA')
-        s = OptionMenu(self.f4, self.multiv_compliance_scale, *compliance_choices)
-        s.grid(row=6, column=3)
+        OptionMenu(self.f4, self.multiv_compliance_scale, *compliance_choices).grid(row=6, column=3)
 
         self.multiv_recipients.set("adapbot@gmail.com")
-        s = Label(self.f4, text="Email data to:")
-        s.grid(row=7, column=1)
-        s = Entry(self.f4, textvariable=self.multiv_recipients)
-        s.grid(row=7, column=2)
+        Label(self.f4, text="Email data to:").grid(row=7, column=1)
+        Entry(self.f4, textvariable=self.multiv_recipients).grid(row=7, column=2)
 
         source_choices = {'Keithley 2400', 'Keithley 2657a'}
         self.multiv_source_choice.set('Keithley 2657a')
-        s = OptionMenu(self.f4, self.multiv_source_choice, *source_choices)
-        s.grid(row=0, column=7)
+        OptionMenu(self.f4, self.multiv_source_choice, *source_choices).grid(row=0, column=7)
 
-        s = Label(self.f4, text="Progress:")
-        s.grid(row=11, column=1)
+        Label(self.f4, text="Progress:").grid(row=11, column=1)
 
-        s = Label(self.f4, text="Est finish at:")
-        s.grid(row=12, column=1)
+        Label(self.f4, text="Est finish at:").grid(row=12, column=1)
 
         self.multiv_timer = Label(self.f4, text=timetext)
         self.multiv_timer.grid(row=12, column=2)
@@ -887,82 +829,55 @@ class GuiPart:
 
         self.multiv_canvas.draw()
 
-        s = Button(self.f4, text="Start IVs", command=self.multiv_prepare_values)
-        s.grid(row=3, column=7)
+        Button(self.f4, text="Start IVs", command=self.multiv_prepare_values).grid(row=3, column=7)
 
-        s = Button(self.f4, text="Stop", command=self.quit)
-        s.grid(row=4, column=7)
+        Button(self.f4, text="Stop", command=self.quit).grid(row=4, column=7)
 
         """
         Current Monitor IV
         """
 
-        if "Windows" in platform.platform():
+        if "Windows" in platform():
             self.curmon_filename.set("iv_data")
-            s = Label(self.f5, text="File name:")
-            s.grid(row=0, column=1)
-            s = Entry(self.f5, textvariable=self.curmon_filename)
-            s.grid(row=0, column=2)
+            Label(self.f5, text="File name:").grid(row=0, column=1)
+            Entry(self.f5, textvariable=self.curmon_filename).grid(row=0, column=2)
 
-        s = Label(self.f5, text="Start Volt")
-        s.grid(row=1, column=1)
-        s = Entry(self.f5, textvariable=self.curmon_start_volt)
-        s.grid(row=1, column=2)
-        s = Label(self.f5, text="V")
-        s.grid(row=1, column=3)
+        Label(self.f5, text="Start Volt").grid(row=1, column=1)
+        Entry(self.f5, textvariable=self.curmon_start_volt).grid(row=1, column=2)
+        Label(self.f5, text="V").grid(row=1, column=3)
 
-        s = Label(self.f5, text="End Volt")
-        s.grid(row=2, column=1)
-        s = Entry(self.f5, textvariable=self.curmon_end_volt)
-        s.grid(row=2, column=2)
-        s = Label(self.f5, text="V")
-        s.grid(row=2, column=3)
+        Label(self.f5, text="End Volt").grid(row=2, column=1)
+        Entry(self.f5, textvariable=self.curmon_end_volt).grid(row=2, column=2)
+        Label(self.f5, text="V").grid(row=2, column=3)
 
-        s = Label(self.f5, text="Step Volt")
-        s.grid(row=3, column=1)
-        s = Entry(self.f5, textvariable=self.curmon_step_volt)
-        s.grid(row=3, column=2)
-        s = Label(self.f5, text="V")
-        s.grid(row=3, column=3)
+        Label(self.f5, text="Step Volt").grid(row=3, column=1)
+        Entry(self.f5, textvariable=self.curmon_step_volt).grid(row=3, column=2)
+        Label(self.f5, text="V").grid(row=3, column=3)
 
-        s = Label(self.f5, text="Test Time")
-        s.grid(row=4, column=1)
-        s = Entry(self.f5, textvariable=self.curmon_time)
-        s.grid(row=4, column=2)
-        s = Label(self.f5, text="M")
-        s.grid(row=4, column=3)
+        Label(self.f5, text="Test Time").grid(row=4, column=1)
+        Entry(self.f5, textvariable=self.curmon_time).grid(row=4, column=2)
+        Label(self.f5, text="M").grid(row=4, column=3)
 
-        s = Label(self.f5, text="Hold Time")
-        s.grid(row=5, column=1)
-        s = Entry(self.f5, textvariable=self.curmon_hold_time)
-        s.grid(row=5, column=2)
-        s = Label(self.f5, text="s")
-        s.grid(row=5, column=3)
+        Label(self.f5, text="Hold Time").grid(row=5, column=1)
+        Entry(self.f5, textvariable=self.curmon_hold_time).grid(row=5, column=2)
+        Label(self.f5, text="s").grid(row=5, column=3)
 
-        s = Label(self.f5, text="Compliance")
-        s.grid(row=6, column=1)
-        s = Entry(self.f5, textvariable=self.curmon_compliance)
-        s.grid(row=6, column=2)
+        Label(self.f5, text="Compliance").grid(row=6, column=1)
+        Entry(self.f5, textvariable=self.curmon_compliance).grid(row=6, column=2)
         self.curmon_compliance_scale.set('uA')
-        s = OptionMenu(self.f5, self.curmon_compliance_scale, *compliance_choices)
-        s.grid(row=6, column=3)
+        OptionMenu(self.f5, self.curmon_compliance_scale, *compliance_choices).grid(row=6, column=3)
 
         self.curmon_recipients.set("adapbot@gmail.com")
-        s = Label(self.f5, text="Email data to:")
-        s.grid(row=7, column=1)
-        s = Entry(self.f5, textvariable=self.curmon_recipients)
-        s.grid(row=7, column=2)
+        Label(self.f5, text="Email data to:").grid(row=7, column=1)
+        Entry(self.f5, textvariable=self.curmon_recipients).grid(row=7, column=2)
 
         source_choices = {'Keithley 2400', 'Keithley 2657a'}
         self.curmon_source_choice.set('Keithley 2657a')
-        s = OptionMenu(self.f5, self.curmon_source_choice, *source_choices)
-        s.grid(row=0, column=7)
+        OptionMenu(self.f5, self.curmon_source_choice, *source_choices).grid(row=0, column=7)
 
-        s = Label(self.f5, text="Progress:")
-        s.grid(row=11, column=1)
+        Label(self.f5, text="Progress:").grid(row=11, column=1)
 
-        s = Label(self.f5, text="Est finish at:")
-        s.grid(row=12, column=1)
+        Label(self.f5, text="Est finish at:").grid(row=12, column=1)
 
         self.curmon_timer = Label(self.f5, text=timetext)
         self.curmon_timer.grid(row=12, column=2)
@@ -980,31 +895,30 @@ class GuiPart:
 
         self.curmon_canvas.draw()
 
-        s = Button(self.f5, text="Start CurMon", command=self.curmon_prepare_values)
-        s.grid(row=3, column=7)
+        Button(self.f5, text="Start CurMon", command=self.curmon_prepare_values).grid(row=3, column=7)
 
-        s = Button(self.f5, text="Stop", command=self.quit)
-        s.grid(row=4, column=7)
+        Button(self.f5, text="Stop", command=self.quit).grid(row=4, column=7)
 
     def update(self):
         while self.output_data.qsize():
             try:
-                (data, percent, timeremain) = self.output_data.get(0)
+                (data, percent, remaining_time) = self.output_data.get(0)
 
                 if self.type is 0:
-                    print
-                    "Percent done:" + str(percent)
+                    print("Percent done:" + str(percent))
                     self.iv_progress_bar["value"] = percent
                     self.iv_progress_bar.update()
                     (voltages, currents) = data
-                    negative = False
-                    for v in voltages:
-                        if v < 0:
-                            negative = True
-                    if negative:
-                        line, = self.a.plot(map(lambda x: x * -1.0, voltages), map(lambda x: x * -1.0, currents))
+
+                    if v[len(voltages) - 1] < 0:
+                        line, = self.a.plot(
+                            map(lambda x: x * -1.0, voltages),
+                            map(lambda x: x * -1.0, currents)
+                        )
+
                     else:
                         line, = self.a.plot(voltages, currents)
+
                     line.set_antialiased(True)
                     line.set_color('r')
                     self.a.set_title("IV")
@@ -1012,36 +926,20 @@ class GuiPart:
                     self.a.set_ylabel("Current [A]")
                     self.canvas.draw()
 
-                    timetext = str(time.asctime(time.localtime(time.time() + timeremain)))
+                    timetext = str(time.asctime(time.localtime(time.time() + remaining_time)))
                     self.timer = Label(self.f1, text=timetext)
                     self.timer.grid(row=12, column=2)
 
-
                 elif self.type is 1:
                     (voltages, caps) = data
-                    print
-                    "Percent done:" + str(percent)
-                    self.cv_pb["value"] = percent
-                    self.cv_pb.update()
-                    # print "Caps:+++++++"
-                    # print caps
-                    # print "============="
+                    print("Percent done:" + str(percent))
+                    self.cv_progress_bar["value"] = percent
+                    self.cv_progress_bar.update()
                     colors = {0: 'b', 1: 'g', 2: 'r', 3: 'c', 4: 'm', 5: 'k'}
                     i = 0
+
                     for c in caps:
-                        """
-                        print "VOLTS++++++"
-                        print voltages
-                        print "ENDVOLTS===="
-                        #(a, b) = c[0]
-                        print "CAPSENSE+++++"
-                        print c
-
-                        print "ENDCAP======="
-                        """
-
                         if self.first:
-
                             line, = self.cv_a.plot(voltages, c, label=(self.cv_frequencies.get().split(",")[i] + "Hz"))
                             self.cv_a.legend()
                         else:
@@ -1054,7 +952,7 @@ class GuiPart:
                         self.cv_a.set_ylabel("Capacitance [F]")
                         self.cv_canvas.draw()
 
-                    timetext = str(time.asctime(time.localtime(time.time() + timeremain)))
+                    timetext = str(time.asctime(time.localtime(time.time() + remaining_time)))
                     self.timer = Label(self.f2, text=timetext)
                     self.timer.grid(row=15, column=2)
                     self.first = False
@@ -1086,7 +984,7 @@ class GuiPart:
                     self.multiv_a.set_ylabel("Current [A]")
                     self.multiv_canvas.draw()
 
-                    timetext = str(time.asctime(time.localtime(time.time() + timeremain)))
+                    timetext = str(time.asctime(time.localtime(time.time() + remaining_time)))
                     self.multiv_timer = Label(self.f4, text=timetext)
                     self.multiv_timer.grid(row=12, column=2)
 
@@ -1112,7 +1010,7 @@ class GuiPart:
                     self.curmon_a.set_ylabel("Current [A]")
                     self.curmon_canvas.draw()
 
-                    timetext = str(time.asctime(time.localtime(time.time() + timeremain)))
+                    timetext = str(time.asctime(time.localtime(time.time() + remaining_time)))
                     self.curmon_timer = Label(self.f5, text=timetext)
                     self.curmon_timer.grid(row=12, column=2)
             except queue.Empty:
@@ -1178,8 +1076,8 @@ class GuiPart:
         self.type = 4
 
 
-def iv_data_acqusition(input_params, dataout, stopqueue):
-    if "Windows" in platform.platform():
+def iv_data_acquisition(input_params, dataout, stopqueue):
+    if "Windows" in platform():
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients,
          filename) = input_params
     else:
@@ -1225,7 +1123,7 @@ def iv_data_acqusition(input_params, dataout, stopqueue):
                                                                                                                 "_"))
 
     data_out = xlsxwriter.Workbook(fname)
-    if "Windows" in platform.platform():
+    if "Windows" in platform():
         fname = "./" + fname
     worksheet = data_out.add_worksheet()
 
@@ -1265,9 +1163,9 @@ def iv_data_acqusition(input_params, dataout, stopqueue):
         pass
 
 
-def cv_getvalues(input_params, dataout, stopqueue):
+def cv_data_acquisition(input_params, dataout, stopqueue):
     print(input_params)
-    if "Windows" in platform.platform():
+    if "Windows" in platform():
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, frequencies, function,
          amplitude, impedance, integration, recipients, filename) = input_params
         filename = "./" + filename
@@ -1295,7 +1193,7 @@ def cv_getvalues(input_params, dataout, stopqueue):
                                                                                                                     "_"))
 
     data_out = xlsxwriter.Workbook(fname)
-    if "Windows" in platform.platform():
+    if "Windows" in platform():
         fname = "./" + fname
     worksheet = data_out.add_worksheet()
 
@@ -1487,51 +1385,70 @@ def cv_getvalues(input_params, dataout, stopqueue):
 
 
 # TODO: Implement value parsing from gui
-def spa_getvalues(input_params, dataout):
+def spa_data_acquisition(input_params, dataout):
     pass
 
 
-def multiv_getvalues(input_params, dataout, stopqueue):
-    if "Windows" in platform.platform():
-        (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename,
-         times_str) = input_params
-    else:
-        (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, thowaway,
-         times_str) = input_params
-        filename = filedialog.asksaveasfilename(initialdir="~", title="Save data",
-                                                filetypes=(("Microsoft Excel file", "*.xlsx"), ("all files", "*.*")))
-    print("File done")
+def multiv_data_acuisition(input_params, data_out, stop_queue):
+    (compliance,
+     compliance_scale,
+     start_volt,
+     end_volt,
+     step_volt,
+     hold_time,
+     source_choice,
+     recipients,
+     filename,
+     times_str) = input_params
+
+    if "Windows" in platform():
+        filename = filedialog.asksaveasfilename(
+            initialdir="~",
+            title="Save data",
+            filetypes=(
+                ("Microsoft Excel file", "*.xlsx"),
+                ("all files", "*.*")
+            )
+        )
+
+    compliance_dict = {'mA': 1e-3, 'uA': 1e-6, 'nA': 1e-9}
+    times_repeat_iv = 0
+    source_params = None
 
     try:
-        comp = float(float(compliance) * ({'mA': 1e-3, 'uA': 1e-6, 'nA': 1e-9}.get(compliance_scale, 1e-6)))
-        source_params = (int(float(start_volt)), int(float(end_volt)), (float(step_volt)),
-                         float(hold_time), comp)
-        times = int(times_str)
+        comp = float(compliance * (compliance_dict.get(compliance_scale, 1e-6)))
+
+        source_params = (
+            int(float(start_volt)),
+            int(float(end_volt)),
+            float(step_volt),
+            float(hold_time),
+            comp)
+
+        times_repeat_iv = int(times_str)
 
     except ValueError:
         print("Please fill in all fields!")
+
     data = ()
 
-    while times > 0:
-        if not stopqueue.empty():
+    while times_repeat_iv > 0:
+        if not stop_queue.empty():
             break
 
         if source_params is None:
             pass
+
         else:
             print(source_choice)
-            choice = 0
-            if "2657a" in source_choice:
-                print("asdf keithley 366")
-                choice = 1
-            data = iv_sweep(source_params, choice, dataout, stopqueue)
-        fname = (
-            ((filename + "_" + str(time.asctime(time.localtime(time.time()))) + ".xlsx").replace(" ", "_")).replace(":",
+            data = iv_sweep(source_params, source_choice, data_out, stop_queue)
+        formatted_filename = (
+        ((filename + "_" + str(time.asctime(time.localtime(time.time()))) + ".xlsx").replace(" ", "_")).replace(":",
                                                                                                                     "_"))
-        print(fname)
-        data_out = xlsxwriter.Workbook(fname)
-        if "Windows" in platform.platform():
-            fname = "./" + fname
+        print(formatted_filename)
+        data_out = xlsxwriter.Workbook(formatted_filename)
+        if "Windows" in platform():
+            formatted_filename = "./" + formatted_filename
         worksheet = data_out.add_worksheet()
 
         (v, i) = data
@@ -1558,20 +1475,20 @@ def multiv_getvalues(input_params, dataout, stopqueue):
 
         try:
             mails = recipients.split(",")
-            sentTo = []
-            for mailee in mails:
-                sentTo.append(mailee.strip())
+            recipient_list = []
+            for recipient in mails:
+                recipient_list.append(recipient.strip())
 
-            print(sentTo)
-            send_mail(fname, sentTo)
+            print(recipient_list)
+            send_mail(formatted_filename, recipient_list)
         except:
             pass
         data_out.close()
-        times -= 1
+        times_repeat_iv -= 1
 
 
-def curmon_getvalues(input_params, dataout, stopqueue):
-    if "Windows" in platform.platform():
+def curmon_data_acquisition(input_params, dataout, stopqueue):
+    if "Windows" in platform():
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename,
          total_time) = input_params
         filename = (
@@ -1602,7 +1519,7 @@ def curmon_getvalues(input_params, dataout, stopqueue):
         data = curmon(source_params, choice, dataout, stopqueue)
 
     data_out = xlsxwriter.Workbook(filename)
-    if "Windows" in platform.platform():
+    if "Windows" in platform():
         fname = "./" + filename
     path = filename
     worksheet = data_out.add_worksheet()
@@ -1650,7 +1567,7 @@ class ThreadedProgram:
         self.input_data = queue.Queue()
         self.output_data = queue.Queue()
         self.stop_queue = queue.Queue()
-        print("Init LabMaster GUI")
+        print("Init LabMaster")
 
         self.running = True
         self.gui = GuiPart(master, self.input_data, self.output_data, self.stop_queue)
@@ -1672,15 +1589,15 @@ class ThreadedProgram:
                 print("Instantiating Threads")
                 (params, measurement) = self.input_data.get()
                 if measurement is 0:
-                    iv_data_acqusition(params, self.output_data, self.stop_queue)
+                    iv_data_acquisition(params, self.output_data, self.stop_queue)
                 elif measurement is 1:
-                    cv_getvalues(params, self.output_data, self.stop_queue)
+                    cv_data_acquisition(params, self.output_data, self.stop_queue)
                 elif measurement is 2:
-                    spa_getvalues(params, self.output_data, self.stop_queue)
+                    spa_data_acquisition(params, self.output_data, self.stop_queue)
                 elif measurement is 3:
-                    multiv_getvalues(params, self.output_data, self.stop_queue)
+                    multiv_data_acuisition(params, self.output_data, self.stop_queue)
                 elif measurement is 4:
-                    curmon_getvalues(params, self.output_data, self.stop_queue)
+                    curmon_data_acquisition(params, self.output_data, self.stop_queue)
                 else:
                     pass
                 self.measuring = False
@@ -1692,7 +1609,25 @@ class ThreadedProgram:
 
 
 if __name__ == "__main__":
+    print("Welcome to LabMaster")
+    print("""By:
+                   _..._     
+                .-'_..._''.  
+        .--.  .' .'      '.\ 
+        |__| / .'            
+.-,.--. .--.. '              
+|  .-. ||  || |              
+| |  | ||  || |              
+| |  | ||  |. '              
+| |  '- |  | \ '.          . 
+| |     |__|  '. `._____.-'/ 
+| |             `-.______ /  
+|_|                      `   
+                             
+""")
+    print("For support or bug report submission: Please email Ric at rirrodri@ucsc.edu")
     rm = visa.ResourceManager()
+    print("\n")
     print("*" * 80)
     print("Devices connected:")
     print(
@@ -1701,6 +1636,7 @@ if __name__ == "__main__":
         else "No devices located. Please check GPIB cable."
     )
     print("*" * 80)
+    print("\n")
 
     root = Tk()
     root.geometry('800x800')
