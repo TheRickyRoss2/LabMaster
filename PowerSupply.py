@@ -7,10 +7,10 @@ class PowerSupplyFactory(object):
     """
     Abstract Class for creating power supply interfaces.
     Call the static method PowerSupply.factory("insert_my_type")
-    to get a power supply object
+    to get a power supply object instance
     """
 
-    def factory(power_supply_type, gpib_address):
+    def factory(power_supply_type):
         """
         Factory method for instantiating power supply objects
         Call this function to create a client interface for the
@@ -24,10 +24,10 @@ class PowerSupplyFactory(object):
         :return: Power Supply Object which corresponds to type sepcified
         """
 
-        if power_supply_type == "Keithley2657a":
-            return Keithley2657a(gpib_address)
-        elif power_supply_type == "Keithley2400":
-            return Keithley2400(gpib_address)
+        if power_supply_type == "keithley2657a":
+            return Keithley2657a()
+        elif power_supply_type == "keithley2400":
+            return Keithley2400()
         assert 0, "Could not create power supply of type: " + power_supply_type
 
     factory = staticmethod(factory)

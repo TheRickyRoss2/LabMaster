@@ -1,6 +1,9 @@
 import smtplib
-import email
-import email.mime.application
+from email import encoders
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.utils import formatdate
 
 EMAIL_USERNAME = "adapbot@gmail.com"
 EMAIL_PASSWORD = "AdapBot143"
@@ -14,30 +17,18 @@ def send_mail(attached_file_name, recipients):
     :param recipients: comma separated list of email recipients
     :return: None
     """
-    email_message = email.mime.Multipart.MIMEMultipart()
+    email_message = MIMEMultipart()
     email_message['Subject'] = 'Experiment Data'
     email_message['From'] = EMAIL_USERNAME
     email_message['To'] = ", ".join(recipients)
-    
-    body = email.mime.Text.MIMEText("""Your experiment has 
-    finished!Here is the data.""")
-    email_message.attach(body)
+    email_message['Date'] = formatdate(localtime=True)
+    email_message.attach(MIMEText("Your experiment has finished!"))
+    attach = MIMEBase('application', 'octet-stream')
+    attach.set_payload(open(attached_file_name, 'rb').read())
+    encoders.encode_base64(attach)
+    attach.add_header('Content-Disposition', 'attachment; filename="{}"'.format(attached_file_name))
+    email_message.attach(attach)
 
-    file_reader = open(attached_file_name, 'rb')
-    attachment = email.mime.application.MIMEApplication(
-        file_reader.read(),
-        _subtype="xlsx"
-    )
-
-    file_reader.close()
-
-    attachment.add_header(
-        'Content-Disposition',
-        'attachment',
-        filename=attached_file_name
-    )
-
-    email_message.attach(attachment)
 
     send_email_connection = smtplib.SMTP(SMTP_SERVER)
     send_email_connection.starttls()

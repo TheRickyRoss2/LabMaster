@@ -1,11 +1,11 @@
 #!/usr/local/bin/python
 
-import platform
+import logging
+import platform as Platform
 import queue
 import sys
 import threading
 import time
-from platform import platform
 from random import randint
 from tkinter import RAISED, ttk, filedialog
 from tkinter import Tk, Label, Button, StringVar, Entry, OptionMenu
@@ -25,129 +25,149 @@ from matplotlib import pyplot as plt
 
 debug = False
 
+logging.basicConfig(
+    filename="LabMaster" + ".log",
+    filemode='a',
+    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+    datefmt='%H:%M:%S',
+    level=logging.DEBUG
+)
+
+logger = logging.getLogger(__name__)
+logger.info("Initialized LabMaster")
 
 def iv_sweep(
-        source_parameters,
-        sourcemeter,
-        output_data_queue,
-        stop_measurement_queue):
-    (end_volt,
-     step_volt,
-     delay_time,
-     compliance) = source_parameters
+        params_source,
+        params_source_device,
+        queue_output_data,
+        queue_stop_measurement):
+    (volt_end,
+     volt_step,
+     time_delay,
+     current_compliance) = params_source
 
-    currents = []
-    voltages = []
-    keithley = 0
+    list_current = []
+    list_voltage = []
+
+    device_high_voltage = None
 
     if debug:
         pass
     else:
-        keithley = PowerSupplyFactory.factory(sourcemeter)
-        keithley.configure_measurement(1, 0, compliance)
+        device_high_voltage = PowerSupplyFactory.factory(params_source_device)
+        device_high_voltage.configure_measurement(1, 0, current_compliance)
 
     last_volt = 0
     over_compliance_count = 0
 
-    print("Beginning IV Measurement with params:")
-    print("To " + str(end_volt) + " with step size: " + str(step_volt))
-    print("Compliance current: " + str(compliance))
+    print("/" + "*" * 80 + "/")
+    print("Beginning IV Measurement:")
+    print("To " + str(volt_end) + " with step size: " + str(volt_step))
+    print("Compliance current: " + str(current_compliance))
 
     scaled = False
-    if step_volt < 1.0:
-        end_volt *= 1000
-        step_volt *= 1000
+    if volt_step < 1.0:
+        volt_end *= 1000
+        volt_step *= 1000
         scaled = True
 
-    if end_volt < 0:
-        step_volt = -1 * step_volt
+    if volt_end < 0:
+        volt_step = -1 * volt_step
 
-    for volt in range(0, end_volt, int(step_volt)):
+    for volt in range(0, volt_end, int(volt_step)):
 
-        if not stop_measurement_queue.empty():
-            stop_measurement_queue.get()
+        if not queue_stop_measurement.empty():
+            queue_stop_measurement.get()
             break
 
         start_time = time.time()
 
+        test_volt = 0
         if debug:
-            pass
+            test_volt = volt / 1000.
         else:
             if scaled:
-                keithley.set_output(volt / 1000.0)
-            else:
-                keithley.set_output(volt)
+                device_high_voltage.set_output(volt / 1000.0)
+                test_volt = volt / 1000.
 
-        time.sleep(delay_time)
+            else:
+                device_high_voltage.set_output(volt)
+                test_volt = volt
+
+        time.sleep(time_delay)
 
         if debug:
             curr = (volt + randint(0, 10)) * 1e-9
         else:
-            curr = keithley.get_current()
+            curr = device_high_voltage.get_current()
 
-        print("Measurement Reading: " + str(volt) + "V, " + str(curr) + "A")
+        print("Measurement Reading: " + str(test_volt) + "V, " + str(curr) + "A")
 
-        if abs(curr) > abs(compliance - 50e-9):
+        if abs(curr) > abs(current_compliance - 50e-9):
             over_compliance_count = over_compliance_count + 1
         else:
             over_compliance_count = 0
 
         if over_compliance_count >= 5:
             print("Compliance reached")
-            output_data_queue.put(((voltages, currents), 100, 0))
+            queue_output_data.put(((list_voltage, list_current), 100, 0))
             break
 
-        currents.append(curr)
+        list_current.append(curr)
         if scaled:
-            voltages.append(volt / 1000.0)
+            list_voltage.append(volt / 1000.0)
         else:
-            voltages.append(volt)
+            list_voltage.append(volt)
 
         if scaled:
             last_volt = volt / 1000.0
         else:
             last_volt = volt
 
-        time_remain = (time.time() - start_time) * (abs((end_volt - volt) / step_volt))
+        time_remain = (time.time() - start_time) * (abs((volt_end - volt) / volt_step))
 
-        output_data_queue.put(((voltages, currents), 100 * abs((volt + step_volt) / float(end_volt)), time_remain))
+        queue_output_data.put(
+            ((list_voltage, list_current), 100 * abs((volt + volt_step) / float(volt_end)), time_remain))
 
-    while abs(last_volt) > 25:
+    print("Stepping Down: " + str(last_volt) + "V")
+    if scaled:
+        volt_step = volt_step / 1000.
+
+    while abs(last_volt) >= abs(volt_step * 2):
+        print("Stepping Down: " + str(last_volt) + "V")
         if debug:
             pass
         else:
-            keithley.set_output(last_volt)
+            device_high_voltage.set_output(last_volt)
 
-        time.sleep(delay_time / 2.0)
+        time.sleep(time_delay / 2.0)
 
         if last_volt < 0:
-            last_volt += abs(step_volt * 2.0)
+            last_volt += abs(volt_step * 2.0)
         else:
-            last_volt -= abs(step_volt * 2.0)
+            last_volt -= abs(volt_step * 2.0)
 
-    time.sleep(delay_time / 2.0)
+    time.sleep(time_delay / 2.0)
     if debug:
         pass
     else:
-        keithley.set_output(0)
-        keithley.enable_output(False)
-    return (voltages, currents)
+        device_high_voltage.set_output(0)
+        device_high_voltage.enable_output(False)
+    print("IV Sweep Finished")
+    print("/" + "*" * 80 + "/")
+    return list_voltage, list_current
 
 
 def cv_sweep(params, sourcemeter, dataout, stopqueue):
-    capacitance = []
-    voltages = []
-    p2 = []
+    list_capacitance = []
+    list_voltage = []
+    list_parameter_secondary = []
     c = []
     keithley = 0
     agilent = 0
-
-    if debug:
-        pass
-    else:
-        keithley = PowerSupplyFactory.factory(sourcemeter)
-
     last_volt = 0
+    badCount = 0
+    scaled = False
 
     (end_volt,
      step_volt,
@@ -162,17 +182,11 @@ def cv_sweep(params, sourcemeter, dataout, stopqueue):
     if debug:
         pass
     else:
+        keithley = PowerSupplyFactory.factory(sourcemeter)
         keithley.configure_measurement(1, 0, compliance)
-
-    if debug:
-        pass
-    else:
         agilent = AgilentE4980a()
         agilent.configure_measurement(function)
         agilent.configure_aperture(int_time)
-    badCount = 0
-
-    scaled = False
 
     if step_volt < 1.0:
         end_volt *= 1000
@@ -202,15 +216,15 @@ def cv_sweep(params, sourcemeter, dataout, stopqueue):
             time.sleep(delay_time)
 
             if debug:
-                capacitance.append((volt + int(f) * randint(0, 10)))
+                list_capacitance.append((volt + int(f) * randint(0, 10)))
                 curr = volt * 1e-10
                 c.append(curr)
-                p2.append(volt * 10)
+                list_parameter_secondary.append(volt * 10)
             else:
                 agilent.configure_measurement_signal(float(f), 0, level)
                 (data, aux) = agilent.read_data()
-                capacitance.append(data)
-                p2.append(aux)
+                list_capacitance.append(abs(data))
+                list_parameter_secondary.append(aux)
                 curr = keithley.get_current()
                 c.append(curr)
 
@@ -220,24 +234,29 @@ def cv_sweep(params, sourcemeter, dataout, stopqueue):
             badCount = 0
 
         if badCount >= 5:
-            print
-            "Compliance reached"
+            print("Compliance reached")
             break
 
         time_remain = (time.time() - start_time) * (abs((end_volt - volt) / step_volt))
 
         if scaled:
-            voltages.append(volt / 1000.0)
+            if volt < 0:
+                list_voltage.append(volt / -1000.0)
+            else:
+                list_voltage.append(volt / 1000.0)
         else:
-            voltages.append(volt)
+            if volt < 0:
+                list_voltage.append(volt)
+            else:
+                list_voltage.append(volt)
         formatted_cap = []
         parameter2 = []
         currents = []
         for i in range(0, len(frequencies), 1):
-            formatted_cap.append(capacitance[i::len(frequencies)])
-            parameter2.append(p2[i::len(frequencies)])
+            formatted_cap.append(list_capacitance[i::len(frequencies)])
+            parameter2.append(list_parameter_secondary[i::len(frequencies)])
             currents.append(c[i::len(frequencies)])
-        dataout.put(((voltages, formatted_cap), 100 * abs((volt + step_volt) / float(end_volt)), time_remain))
+        dataout.put(((list_voltage, formatted_cap), 100 * abs((volt + step_volt) / float(end_volt)), time_remain))
 
         time_remain = time.time() + (time.time() - start_time) * (abs((volt - end_volt) / end_volt))
 
@@ -268,7 +287,7 @@ def cv_sweep(params, sourcemeter, dataout, stopqueue):
     else:
         keithley.enable_output(False)
 
-    return (voltages, currents, formatted_cap, parameter2)
+    return (list_voltage, currents, formatted_cap, parameter2)
 
 
 def spa_iv(params, dataout, stopqueue):
@@ -601,7 +620,7 @@ class GuiPart:
         n.add(self.f4, text='Multiple IV')
         n.add(self.f5, text='Current Monitor')
 
-        if "Windows" in platform():
+        if "Windows" in Platform.platform():
             self.filename.set("iv_data")
             Label(self.f1, text="File name:").grid(row=0, column=1)
             Entry(self.f1, textvariable=self.filename).grid(row=0, column=2)
@@ -677,7 +696,7 @@ class GuiPart:
         self.cv_filename = StringVar()
         self.cv_filename.set("cv_data")
 
-        if "Windows" in platform():
+        if "Windows" in Platform.platform():
             Label(self.f2, text="File name").grid(row=0, column=1)
             Entry(self.f2, textvariable=self.cv_filename).grid(row=0, column=2)
 
@@ -772,7 +791,7 @@ class GuiPart:
         Multiple IV GUI
         """
 
-        if "Windows" in platform():
+        if "Windows" in Platform.platform():
             self.multiv_filename.set("iv_data")
             Label(self.f4, text="File name:").grid(row=0, column=1)
             Entry(self.f4, textvariable=self.multiv_filename).grid(row=0, column=2)
@@ -837,7 +856,7 @@ class GuiPart:
         Current Monitor IV
         """
 
-        if "Windows" in platform():
+        if "Windows" in Platform.platform():
             self.curmon_filename.set("iv_data")
             Label(self.f5, text="File name:").grid(row=0, column=1)
             Entry(self.f5, textvariable=self.curmon_filename).grid(row=0, column=2)
@@ -910,10 +929,13 @@ class GuiPart:
                     self.iv_progress_bar.update()
                     (voltages, currents) = data
 
-                    if v[len(voltages) - 1] < 0:
+                    if voltages[len(voltages) - 1] < 0:
+                        volt_inv = list(map(lambda x: x * -1.0, voltages))
+                        curr_inv = list(map(lambda x: x * -1.0, voltages))
+
                         line, = self.a.plot(
-                            map(lambda x: x * -1.0, voltages),
-                            map(lambda x: x * -1.0, currents)
+                            volt_inv,
+                            curr_inv
                         )
 
                     else:
@@ -1024,7 +1046,8 @@ class GuiPart:
     def prepare_values(self):
         print("preparing iv values")
         input_params = ((self.compliance.get(), self.compliance_scale.get(), self.start_volt.get(), self.end_volt.get(),
-                         self.step_volt.get(), self.hold_time.get(), self.source_choice.get(), self.recipients.get(),
+                         abs(float(self.step_volt.get())), self.hold_time.get(), self.source_choice.get(),
+                         self.recipients.get(),
                          self.filename.get()), 0)
         self.input_data.put(input_params)
         self.f.clf()
@@ -1037,7 +1060,8 @@ class GuiPart:
         input_params = ((self.cv_compliance.get(), self.cv_compliance_scale.get(), self.cv_start_volt.get(),
                          self.cv_end_volt.get(), self.cv_step_volt.get(), self.cv_hold_time.get(),
                          self.cv_source_choice.get(),
-                         map(lambda x: x.strip(), self.cv_frequencies.get().split(",")), self.cv_function_choice.get(),
+                         list(map(lambda x: x.strip(), self.cv_frequencies.get().split(","))),
+                         self.cv_function_choice.get(),
                          self.cv_amplitude.get(), self.cv_impedance.get(), self.cv_integration.get(),
                          self.cv_recipients.get()
                          , self.cv_filename.get()), 1)
@@ -1077,7 +1101,7 @@ class GuiPart:
 
 
 def iv_data_acquisition(input_params, dataout, stopqueue):
-    if "Windows" in platform():
+    if "Windows" in Platform.platform():
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients,
          filename) = input_params
     else:
@@ -1089,7 +1113,7 @@ def iv_data_acquisition(input_params, dataout, stopqueue):
          hold_time,
          source_choice,
          recipients,
-         thowaway) = input_params
+         throwaway) = input_params
 
         filename = filedialog.asksaveasfilename(
             initialdir="~",
@@ -1103,7 +1127,7 @@ def iv_data_acquisition(input_params, dataout, stopqueue):
 
     try:
         comp = float(float(compliance) * ({'mA': 1e-3, 'uA': 1e-6, 'nA': 1e-9}.get(compliance_scale, 1e-6)))
-        source_params = (int(float(start_volt)), int(float(end_volt)), (float(step_volt)),
+        source_params = (int(float(end_volt)), (float(step_volt)),
                          float(hold_time), comp)
     except ValueError:
         print("Please fill in all fields!")
@@ -1112,18 +1136,18 @@ def iv_data_acquisition(input_params, dataout, stopqueue):
         pass
     else:
         print(source_choice)
-        choice = 0
-        if "2657a" in source_choice:
-            print("asdf keithley 366")
-            choice = 1
-        data = iv_sweep(source_params, choice, dataout, stopqueue)
+        data = iv_sweep(source_params, source_choice.lower().replace(' ', ''), dataout, stopqueue)
 
-    fname = (
-        ((filename + "_" + str(time.asctime(time.localtime(time.time()))) + ".xlsx").replace(" ", "_")).replace(":",
-                                                                                                                "_"))
+    fname = (((filename +
+               "_" +
+               str(time.asctime(time.localtime(time.time()))) +
+               ".xlsx").replace(
+        " ", "_")).replace(
+        ":", "_")
+    )
 
     data_out = xlsxwriter.Workbook(fname)
-    if "Windows" in platform():
+    if "Windows" in Platform.platform():
         fname = "./" + fname
     worksheet = data_out.add_worksheet()
 
@@ -1165,7 +1189,7 @@ def iv_data_acquisition(input_params, dataout, stopqueue):
 
 def cv_data_acquisition(input_params, dataout, stopqueue):
     print(input_params)
-    if "Windows" in platform():
+    if "Windows" in Platform.platform():
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, frequencies, function,
          amplitude, impedance, integration, recipients, filename) = input_params
         filename = "./" + filename
@@ -1177,7 +1201,7 @@ def cv_data_acquisition(input_params, dataout, stopqueue):
 
     try:
         comp = float(float(compliance) * ({'mA': 1e-3, 'uA': 1e-6, 'nA': 1e-9}.get(compliance_scale, 1e-6)))
-        params = (int(float(start_volt)), int(float(end_volt)), int(float(step_volt)),
+        params = (int(float(end_volt)), int(float(step_volt)),
                   float(hold_time), comp, frequencies, float(amplitude), function, int(impedance),
                   {"Short": 0, "Medium": 1, "Long": 2}.get(integration))
         print(params)
@@ -1187,13 +1211,13 @@ def cv_data_acquisition(input_params, dataout, stopqueue):
     if params is None:
         pass
     else:
-        data = cv_sweep(params, {"Keithley 2657a": 1, "Keithley 2400": 0}.get(source_choice), dataout, stopqueue)
+        data = cv_sweep(params, source_choice.lower().replace(' ', ''), dataout, stopqueue)
         fname = (
             ((filename + "_" + str(time.asctime(time.localtime(time.time()))) + ".xlsx").replace(" ", "_")).replace(":",
                                                                                                                     "_"))
 
-    data_out = xlsxwriter.Workbook(fname)
-    if "Windows" in platform():
+        data_out = xlsxwriter.Workbook(fname)
+    if "Windows" in Platform.platform():
         fname = "./" + fname
     worksheet = data_out.add_worksheet()
 
@@ -1401,7 +1425,7 @@ def multiv_data_acuisition(input_params, data_out, stop_queue):
      filename,
      times_str) = input_params
 
-    if "Windows" in platform():
+    if "Windows" in Platform.platform():
         filename = filedialog.asksaveasfilename(
             initialdir="~",
             title="Save data",
@@ -1447,7 +1471,7 @@ def multiv_data_acuisition(input_params, data_out, stop_queue):
                                                                                                                     "_"))
         print(formatted_filename)
         data_out = xlsxwriter.Workbook(formatted_filename)
-        if "Windows" in platform():
+        if "Windows" in Platform.platform():
             formatted_filename = "./" + formatted_filename
         worksheet = data_out.add_worksheet()
 
@@ -1488,7 +1512,7 @@ def multiv_data_acuisition(input_params, data_out, stop_queue):
 
 
 def curmon_data_acquisition(input_params, dataout, stopqueue):
-    if "Windows" in platform():
+    if "Windows" in Platform.platform():
         (compliance, compliance_scale, start_volt, end_volt, step_volt, hold_time, source_choice, recipients, filename,
          total_time) = input_params
         filename = (
@@ -1519,7 +1543,7 @@ def curmon_data_acquisition(input_params, dataout, stopqueue):
         data = curmon(source_params, choice, dataout, stopqueue)
 
     data_out = xlsxwriter.Workbook(filename)
-    if "Windows" in platform():
+    if "Windows" in Platform.platform():
         fname = "./" + filename
     path = filename
     worksheet = data_out.add_worksheet()
@@ -1609,23 +1633,19 @@ class ThreadedProgram:
 
 
 if __name__ == "__main__":
-    print("Welcome to LabMaster")
-    print("""By:
-                   _..._     
-                .-'_..._''.  
-        .--.  .' .'      '.\ 
-        |__| / .'            
-.-,.--. .--.. '              
-|  .-. ||  || |              
-| |  | ||  || |              
-| |  | ||  |. '              
-| |  '- |  | \ '.          . 
-| |     |__|  '. `._____.-'/ 
-| |             `-.______ /  
-|_|                      `   
-                             
+    print("""Welcome to:
+ __                  __        __       __                        __                         
+/  |                /  |      /  \     /  |                      /  |                        
+$$ |        ______  $$ |____  $$  \   /$$ |  ______    _______  _$$ |_     ______    ______  
+$$ |       /      \ $$      \ $$$  \ /$$$ | /      \  /       |/ $$   |   /      \  /      \ 
+$$ |       $$$$$$  |$$$$$$$  |$$$$  /$$$$ | $$$$$$  |/$$$$$$$/ $$$$$$/   /$$$$$$  |/$$$$$$  |
+$$ |       /    $$ |$$ |  $$ |$$ $$ $$/$$ | /    $$ |$$      \   $$ | __ $$    $$ |$$ |  $$/ 
+$$ |_____ /$$$$$$$ |$$ |__$$ |$$ |$$$/ $$ |/$$$$$$$ | $$$$$$  |  $$ |/  |$$$$$$$$/ $$ |      
+$$       |$$    $$ |$$    $$/ $$ | $/  $$ |$$    $$ |/     $$/   $$  $$/ $$       |$$ |      
+$$$$$$$$/  $$$$$$$/ $$$$$$$/  $$/      $$/  $$$$$$$/ $$$$$$$/     $$$$/   $$$$$$$/ $$/    
+
 """)
-    print("For support or bug report submission: Please email Ric at rirrodri@ucsc.edu")
+    print("For support or bug report submission: Please email Ric at therickyross2@gmail.com")
     rm = visa.ResourceManager()
     print("\n")
     print("*" * 80)
