@@ -94,14 +94,14 @@ def iv_sweep(
                 device_high_voltage.set_output(volt)
                 test_volt = volt
 
-        time.sleep(time_delay)
+        time.sleep(1)
 
         if debug:
             curr = (volt + randint(0, 10)) * 1e-9
         else:
             curr = device_high_voltage.get_current()
 
-        print("Measurement Reading: " + str(test_volt) + "V, " + str(curr) + "A")
+        # print("Measurement Reading: " + str(test_volt) + "V, " + str(curr) + "A")
 
         if abs(curr) > abs(current_compliance - 50e-9):
             over_compliance_count = over_compliance_count + 1
@@ -109,7 +109,7 @@ def iv_sweep(
             over_compliance_count = 0
 
         if over_compliance_count >= 5:
-            print("Compliance reached")
+            #print("Compliance reached")
             queue_output_data.put(((list_voltage, list_current), 100, 0))
             break
 
@@ -129,7 +129,7 @@ def iv_sweep(
         queue_output_data.put(
             ((list_voltage, list_current), 100 * abs((volt + volt_step) / float(volt_end)), time_remain))
 
-    print("Stepping Down: " + str(last_volt) + "V")
+    #print("Stepping Down: " + str(last_volt) + "V")
     if scaled:
         volt_step = volt_step / 1000.
 
@@ -189,15 +189,15 @@ def cv_sweep(params, sourcemeter, dataout, stopqueue):
         agilent.configure_aperture(int_time)
 
     if step_volt < 1.0:
-        end_volt *= 1000
-        step_volt *= 1000
+        end_volt *= 1000.
+        step_volt *= 1000.
         scaled = True
 
     if end_volt < 0:
         step_volt = -1 * step_volt
 
     start_time = time.time()
-    for volt in range(0, end_volt, step_volt):
+    for volt in range(0, end_volt, int(step_volt)):
         if not stopqueue.empty():
             stopqueue.get()
             break
@@ -252,13 +252,17 @@ def cv_sweep(params, sourcemeter, dataout, stopqueue):
         formatted_cap = []
         parameter2 = []
         currents = []
+        if scaled:
+            print_volt = volt / 1000.
+            print_step = step_volt / 1000.
         for i in range(0, len(frequencies), 1):
             formatted_cap.append(list_capacitance[i::len(frequencies)])
             parameter2.append(list_parameter_secondary[i::len(frequencies)])
             currents.append(c[i::len(frequencies)])
-        dataout.put(((list_voltage, formatted_cap), 100 * abs((volt + step_volt) / float(end_volt)), time_remain))
+        dataout.put(
+            ((list_voltage, formatted_cap), 100 * abs((print_volt + print_step) / float(end_volt)), time_remain))
 
-        time_remain = time.time() + (time.time() - start_time) * (abs((volt - end_volt) / end_volt))
+        time_remain = time.time() + (time.time() - start_time) * (abs((print_volt - end_volt) / end_volt))
 
         if scaled:
             last_volt = volt / 1000.0
@@ -267,25 +271,30 @@ def cv_sweep(params, sourcemeter, dataout, stopqueue):
         # graph point here
 
     if scaled:
-        last_volt = last_volt / 1000
+        volt_step = step_volt / 1000.
 
+    while abs(last_volt) >= abs(volt_step * 2):
+        print("Stepping Down: " + str(last_volt) + "V")
+        if debug:
+            pass
+        else:
+            keithley.set_output(last_volt)
+
+        time.sleep(delay_time / 2.0)
+
+        if last_volt < 0:
+            last_volt += abs(volt_step * 2.0)
+        else:
+            last_volt -= abs(volt_step * 2.0)
+
+    time.sleep(delay_time / 2.0)
     if debug:
         pass
     else:
-        while abs(last_volt) > abs(step_volt):
-            if last_volt <= step_volt:
-                keithley.set_output(0)
-                last_volt = 0
-            else:
-                keithley.set_output(last_volt - step_volt)
-                last_volt -= step_volt
-
-            time.sleep(1)
-
-    if debug:
-        pass
-    else:
+        keithley.set_output(0)
         keithley.enable_output(False)
+    print("CV Sweep Finished")
+    print("/" + "*" * 80 + "/")
 
     return (list_voltage, currents, formatted_cap, parameter2)
 
