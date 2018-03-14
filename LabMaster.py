@@ -23,7 +23,7 @@ matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib import pyplot as plt
 
-debug = False
+debug = True
 
 logging.basicConfig(
     filename="LabMaster" + ".log",
@@ -189,8 +189,8 @@ def cv_sweep(params, sourcemeter, dataout, stopqueue):
         agilent.configure_aperture(int_time)
 
     if step_volt < 1.0:
-        end_volt *= 1000.
-        step_volt *= 1000.
+        end_volt *= 1000
+        step_volt *= 1000
         scaled = True
 
     if end_volt < 0:
@@ -1210,7 +1210,7 @@ def cv_data_acquisition(input_params, dataout, stopqueue):
 
     try:
         comp = float(float(compliance) * ({'mA': 1e-3, 'uA': 1e-6, 'nA': 1e-9}.get(compliance_scale, 1e-6)))
-        params = (int(float(end_volt)), int(float(step_volt)),
+        params = (int(float(end_volt)), float(step_volt),
                   float(hold_time), comp, frequencies, float(amplitude), function, int(impedance),
                   {"Short": 0, "Medium": 1, "Long": 2}.get(integration))
         print(params)
