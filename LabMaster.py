@@ -23,7 +23,7 @@ matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib import pyplot as plt
 
-debug = True
+debug = False
 
 logging.basicConfig(
     filename="LabMaster" + ".log",
@@ -168,6 +168,7 @@ def cv_sweep(params, sourcemeter, dataout, stopqueue):
     last_volt = 0
     badCount = 0
     scaled = False
+    print_volt = 0
 
     (end_volt,
      step_volt,
