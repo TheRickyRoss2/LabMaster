@@ -24,9 +24,9 @@ class PowerSupplyFactory(object):
         :return: Power Supply Object which corresponds to type sepcified
         """
 
-        if power_supply_type == "keithley 2600" or power_supply_type == 1:
+        if power_supply_type == "keithley2600" or power_supply_type == 1:
             return Keithley2657a()
-        elif power_supply_type == "keithley 2400" or power_supply_type == 0:
+        elif power_supply_type == "keithley2400" or power_supply_type == 0:
             return Keithley2400()
         assert 0, "Could not create power supply of type: " + power_supply_type
 
